@@ -53,8 +53,8 @@ namespace net {
     public:
         ifr(const std::string &name)
         : _M_name(name),
-          _M_ifreq_io(),
-          _M_drvinfo()
+          _M_ifreq_io()
+          // _M_drvinfo()
         {
             strncpy(_M_ifreq_io.ifr_name, _M_name.c_str(), IFNAMSIZ);
         }
@@ -92,23 +92,55 @@ namespace net {
          * the function return an ethtool_drvinfo structure 
          */
 
-        std::pair<bool, const ethtool_drvinfo *> 
-        ether_info()
+        std::tr1::shared_ptr<ethtool_drvinfo>
+        ethtool_info() const
         {
+            std::tr1::shared_ptr<ethtool_drvinfo> drvinfo(new ethtool_drvinfo);
+
             uint32_t req = ETHTOOL_GDRVINFO;	/* netdev ethcmd */
 
-            _M_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(& _M_drvinfo);
+            _M_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(drvinfo.get());
             strncpy(_M_ifreq_io.ifr_data, (char *) &req, sizeof(req));
 
             if (ioctl(_S_sock(), SIOCETHTOOL, &_M_ifreq_io) == -1) {
-                errno = 0;
-                return std::make_pair(false, &_M_drvinfo);
+                throw std::runtime_error("SIOCETHTOOL");
             } 
-            
-            return std::make_pair(true, &_M_drvinfo); 
+           
+            return drvinfo; 
         }
 
-        /* SIOCGIFHWADDR */
+        std::tr1::shared_ptr<ethtool_cmd> 
+        ethtool_command() const
+        {
+            std::tr1::shared_ptr<ethtool_cmd> ecmd(new ethtool_cmd);
+
+            ecmd->cmd = ETHTOOL_GSET;
+            _M_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(ecmd.get());
+
+            if (ioctl(_S_sock(), SIOCETHTOOL, &_M_ifreq_io) == -1) {
+                throw std::runtime_error("SIOCETHTOOL");
+            } 
+        
+            return ecmd;   
+        }
+
+        bool
+        ethtool_link() const 
+        {
+            struct ethtool_value edata;
+            edata.cmd = ETHTOOL_GLINK;
+
+            _M_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(&edata);
+            if (ioctl(_S_sock(), SIOCETHTOOL, &_M_ifreq_io) == -1) {
+                throw std::runtime_error("SIOCETHTOOL");
+            }
+            
+            return edata.data;    
+        }
+
+
+        // get hwaddr
+        //
 
         std::string
         mac() const 
@@ -336,9 +368,10 @@ namespace net {
         }
 
         std::string _M_name;
-        struct ifreq _M_ifreq_io;
 
-        ethtool_drvinfo _M_drvinfo;
+        mutable struct ifreq _M_ifreq_io;
+
+        // ethtool_drvinfo _M_drvinfo;
     };
 
 } // namespace more

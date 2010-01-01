@@ -24,6 +24,7 @@
 #include <list>
 #include <vector>
 
+#include <tr1/memory>
 #include <algorithm>
 #include <iterator>
 #include <iomanip>
@@ -73,19 +74,16 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
         { 
             // build the interface by name
             //
-
             net::ifr iif(*it);
 
             // in case the list is given, skip the interface if not included
             //
-
             if (iflist.size() &&
                 find(iflist.begin(), iflist.end(), *it) == iflist.end())
                 continue;
 
             // display the interface when it's UP or -a is passed at command line
             //
-
             if (!all && (iif.flags() & IFF_UP) == 0 && find(iflist.begin(), iflist.end(), *it) == iflist.end())
                 continue;
 
@@ -96,28 +94,89 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // mii test
             //
-
             std::string mii_test = iif.mii();
             if (mii_test.find("ok") != std::string::npos) 
                 std::cout << BOLD();
 
+            std::tr1::shared_ptr<ethtool_cmd> ecmd;
+
+            // ethtool test
+            //
+            try 
+            {
+                ecmd = iif.ethtool_command();
+                if (iif.ethtool_link())
+                    std::cout << BOLD();
+            }
+            catch(...)
+            {
+                if (verbose)
+                    std::cout << "ethtool not supported." << std::endl;
+            }
+
             // display the interface name
             //
-
             std::cout << std::left << std::setw(indent-1) << *it << ' ';    
             n++;
 
+            // display Link-Speed (if supported)
+            //
+            if (ecmd) {
+                uint32_t speed = (ecmd->speed_hi << 16)|ecmd->speed;
+
+                std::cout << "Link:" << (iif.ethtool_link() ? "yes " : "no ");
+
+                if (speed != 0 && speed != (uint16_t)(-1) && speed != (uint32_t)(-1))
+                    std::cout << "Speed:" << ((ecmd->speed_hi << 16)|ecmd->speed) << "Mb/s ";
+               
+                // display half/full duplex...
+                std::cout << "Duplex:"; 
+                switch(ecmd->duplex)
+                {
+                case DUPLEX_HALF:
+                    std::cout << "Half "; break;
+                case DUPLEX_FULL:
+                    std::cout << "Full "; break;
+                default:
+                    std::cout << "Unknown "; break;
+                }
+
+                // display port...
+                std::cout << "Port:"; 
+                switch (ecmd->port) {
+                case PORT_TP:
+                    std::cout << "Twisted Pair "; break;
+                case PORT_AUI:
+                    std::cout << "AUI "; break;
+                case PORT_BNC:
+                    std::cout << "BNC "; break;
+                case PORT_MII:
+                    std::cout << "MII "; break;
+                case PORT_FIBRE:
+                    std::cout << "FIBRE "; break;
+                // case PORT_DA:
+                //    std::cout << "Direct Attach Copper "; break;
+                //case PORT_NONE:
+                //   std::cout << "None "; break;
+                //case PORT_OTHER:
+                //    std::cout << "Other "; break;
+                default:
+                    std::cout << "Unknown "; break;
+                };
+
+            }
+
             // display HWaddr
             //
-
             std::cout << "HWaddr " << iif.mac() << std::endl;
 
             if ( mii_test.find("not supported") == std::string::npos || verbose)
-                std::cout << more::spaces(indent) << "MII:" << mii_test << RESET() << std::endl;
+                std::cout << more::spaces(indent) << "MII:" << mii_test << std::endl;
+
+            std::cout << RESET();
 
             // display wireless config if avaiable
             //
-
             try {
                 char buffer[128];
 
@@ -145,11 +204,11 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             }
             catch(...) {
                 if (verbose)
-                    std::cout << more::spaces(indent) << "no wireless extensions." << std::endl;
+                    std::cout << more::spaces(indent) << "No wireless extensions." << std::endl;
             }
+
             // display wireless info, if available
             //
-
             std::tr1::tuple<double, double, double, double> wi = proc::get_wireless(*it);
             if ( std::tr1::get<0>(wi) != 0.0 ||
                  std::tr1::get<1>(wi) != 0.0 ||
@@ -163,13 +222,11 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // display flags, mtu and metric
             //
-
             std::cout << more::spaces(indent) << iif.flags_str() 
                       << "MTU:" << iif.mtu() << " Metric:" << iif.metric() << std::endl; 
 
             // display inet addr if set
             //
-
             std::string inet_addr = iif.inet_addr<SIOCGIFADDR>();
             if ( inet_addr.size() ) {
                 std::cout << more::spaces(indent) << "inet addr:" << inet_addr  
@@ -181,14 +238,12 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // display inet6 addr if set
             //
-
             std::string inet6_addr = iif.inet6_addr();
             if (inet6_addr.size())
                 std::cout << more::spaces(indent) << inet6_addr << std::endl;
 
             // display map info
             //
-
             ifmap m = iif.map();
             std::cout << std::hex << more::spaces(indent) << "base_addr:0x" << m.base_addr;
             if (m.mem_start)
@@ -198,7 +253,6 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // display irq events per cpu
             //
-
             std::vector<int> cpuint = proc::get_interrupt_counter(static_cast<int>(m.irq));
             for(unsigned int n = 0; n != cpuint.size(); ++n)
                 std::cout << " cpu" << n << "=" << cpuint[n];
@@ -208,7 +262,6 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // display stats
             //
-
             net::ifr::stats s = iif.get_stats();
             std::cout << more::spaces(indent) << "Rx bytes:" << s.rx_bytes << " packets:" << s.rx_packets << 
                          " errors:" << s.rx_errs << " dropped:" << s.rx_drop << 
@@ -216,18 +269,24 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
  
             std::cout << more::spaces(indent) << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets << 
                          " errors:" << s.tx_errs << " dropped:" << s.tx_drop << 
-                         " overruns: " << s.tx_fifo << " colls:" << s.tx_colls << " txqueuelen:" << iif.txqueuelen() << std::endl;
+                         " overruns: " << s.tx_fifo << std::endl;
+            std::cout << more::spaces(indent) << "colls:" << s.tx_colls << 
+                         " txqueuelen:" << iif.txqueuelen() << std::endl;
                                                  
             // ... display drvinfo if available
             //
+            
+            std::tr1::shared_ptr<ethtool_drvinfo> info(iif.ethtool_info());
+            // std::pair<bool, const ethtool_drvinfo *> info = iif.ethtool_info();
+            if (info) {
+                std::cout << more::spaces(indent) << 
+                            "ether_driver:" << info->driver << 
+                            " version:" << info->version;  
 
-            std::pair<bool, const ethtool_drvinfo *> info = iif.ether_info();
-            if (info.first)  {
-                std::cout << more::spaces(indent) << "ether_driver:" << info.second->driver << " version:" << info.second->version;  
-                if (strlen(info.second->fw_version))
-                    std::cout << " firmware:" << info.second->fw_version; 
-                if (strlen(info.second->bus_info))
-                std::cout << " bus:" << info.second->bus_info;
+                if (strlen(info->fw_version))
+                    std::cout << " firmware:" << info->fw_version; 
+                if (strlen(info->bus_info))
+                std::cout << " bus:" << info->bus_info;
                 std::cout << std::endl;
             }
 
@@ -264,11 +323,10 @@ static const struct option long_options[] = {
 int
 main(int argc, char *argv[])
 {
-
-    int i;
     bool all = false;
     bool verb = false;
 
+    int i;
     while ((i = getopt_long(argc, argv, "hVva", long_options, 0)) != EOF)
         switch (i) {
         case 'h':
