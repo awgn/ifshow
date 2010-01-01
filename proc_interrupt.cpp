@@ -1,4 +1,5 @@
 #include <proc_interrupt.h>
+#include <iomanip.hh>
 
 namespace proc {
 
@@ -8,14 +9,16 @@ namespace proc {
         std::ifstream proc_interrupt(proc::INTERRUPT);
         std::vector<int> ret;
 
-        std::string line;
-        getline(proc_interrupt,line);
+        // skip the first line...
+        //
 
-        while( getline(proc_interrupt,line)) {
-            int intnum; more::token_string<':'> intstr;
-            std::istringstream ss(line);
+        proc_interrupt >> more::ignore_line;
 
-            ss >> intstr;
+        more::token_string<':'> intstr;
+
+        while( proc_interrupt >> intstr )
+        {
+            int intnum;
 
             try 
             {
@@ -23,17 +26,22 @@ namespace proc {
             }
             catch(...)
             {
+                proc_interrupt >> more::ignore_line;
                 continue;
             }
 
-            if (intnum != irq)
+            if (intnum != irq) {
+                proc_interrupt >> more::ignore_line;
                 continue;
+            }
 
             int value;
-            while( ss >> value )
-                ret.push_back(value);
+            while( proc_interrupt >> value ) 
+                 ret.push_back(value);
+           
+            break; 
         }
-
+        
         return ret;
     }
 

@@ -1,34 +1,34 @@
 #include <proc_net_wireless.h>
+#include <iomanip.hh>
 
 namespace proc { 
 
     std::tr1::tuple<double, double, double, double>
     get_wireless(const std::string &wlan)
     {
-        std::ifstream proc_net_dev(proc::NET_WIRELESS);
-        std::string line;
-
+        std::ifstream proc_net_wireless(proc::NET_WIRELESS);
+        
         /* skip 2 lines */
-        getline(proc_net_dev,line);
-        getline(proc_net_dev,line);
+        proc_net_wireless >> more::ignore_line >> more::ignore_line;
 
-        while (getline(proc_net_dev,line)) { 
-            std::istringstream ss(line);
-            more::token_string<':'> if_name;
-            ss >> if_name;
-            
+        more::token_string<':'> if_name;
+        while (proc_net_wireless >> if_name) {
+
             std::string name = more::trim(if_name);
-            if (name != wlan)
+            if (name != wlan) {
+                proc_net_wireless >> more::ignore_line;
                continue; 
+            }
 
             double status, link, level, noise;
-            ss >> status >> link >> level >> noise;
+            proc_net_wireless >> status >> link >> level >> noise;
 
             return std::tr1::make_tuple(status,link,level,noise);
         }
-        
+
         return std::tr1::make_tuple(0.0,0.0,0.0,0.0);
     }
+
 
 } // namespace proc
 

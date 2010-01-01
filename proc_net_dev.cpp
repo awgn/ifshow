@@ -1,4 +1,5 @@
 #include <proc_net_dev.h>
+#include <iomanip.hh>
 
 namespace proc {
 
@@ -8,18 +9,17 @@ namespace proc {
         std::ifstream proc_net_dev(proc::NET_DEV);
         std::list<std::string> ret;
 
-        std::string line;
+        // skip the first 2 lines 
+        //    
+        proc_net_dev >> more::ignore_line >> more::ignore_line;
 
-        /* skip 2 lines */
-        getline(proc_net_dev,line);
-        getline(proc_net_dev,line);
-
-        while (getline(proc_net_dev,line)) { 
-            std::istringstream ss(line);
-            more::token_string<':'> if_name;
-            ss >> if_name;
+        more::token_string<':'> if_name;
+        while (proc_net_dev >> if_name)
+        {
             ret.push_back(trim(if_name));
+            proc_net_dev >> more::ignore_line;
         }
+
         return ret;
     }
 }

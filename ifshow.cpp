@@ -11,15 +11,15 @@
 
 #include <getopt.h>
 
-#include <colorful.hh>  // more
-#include <token.hh>     // more
-#include <ifr.h>        // more
-#include <string-utils.hh>
+#include <colorful.hh>      // more
+#include <token.hh>         // more
+#include <iomanip.hh>       // more
+#include <string-utils.hh>  // more
 
 #include <proc_net_wireless.h>
 #include <proc_interrupt.h>
 #include <proc_net_dev.h>
-
+#include <ifr.h>        
 
 extern char *__progname;
 static const char * version = "1.0";
@@ -28,71 +28,132 @@ typedef more::colorful< TYPELIST(more::ecma::bold) > BOLD;
 typedef more::colorful< TYPELIST(more::ecma::reset) > RESET;
 
 
+struct comp_length : std::binary_function<bool, const std::string &, const std::string &>
+{
+    template <typename T>
+    bool operator()(const T &lhs, const T &rhs) const
+    { return lhs.length() < rhs.length(); }
+};
+
 void
 show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = std::list<std::string>())
 {
     std::list<std::string> ifs = proc::get_if_list();
+    std::list<std::string>::const_iterator longest = std::max_element(ifs.begin(), ifs.end(), comp_length());
+
+    size_t indent = longest->length() + 2;
+
     std::list<std::string>::const_iterator it = ifs.begin();
+    std::list<std::string>::const_iterator it_end = ifs.end();
 
-    size_t maxlen = 0;
-    for(; it != ifs.end(); ++it)
-        maxlen = std::max(maxlen, it->size());
+    for(int n=0; it != it_end; ++it) {
 
-    maxlen++;
-    it = ifs.begin();
-
-    for(int n=0; it != ifs.end(); ++it) {
         std::cout << RESET();
 
         try 
         { 
+            // build the interface by name
+            //
+
             net::ifr iif(*it);
+
+            // in case the list is given, skip the interface if not included
+            //
 
             if (iflist.size() &&
                 find(iflist.begin(), iflist.end(), *it) == iflist.end())
                 continue;
 
+            // display the interface when it's UP or -a is passed at command line
+            //
+
             if (!all && (iif.flags() & IFF_UP) == 0 && find(iflist.begin(), iflist.end(), *it) == iflist.end())
                 continue;
 
             // leave an empty line
+            //
             if (n)
                 std::cout << std::endl;
 
             // mii test
+            //
+
             std::string mii_test = iif.mii();
-            if (mii_test.find("ok") != std::string::npos)
+            if (mii_test.find("ok") != std::string::npos) 
                 std::cout << BOLD();
 
             // display the interface name
-            std::cout << std::left << std::setw(maxlen) << *it << ' ';    
+            //
+
+            std::cout << std::left << std::setw(indent-1) << *it << ' ';    
             n++;
 
-            std::cout << "MII:" << mii_test << RESET() << std::endl;
+            // display HWaddr
+            //
 
-            // display wireless info
+            std::cout << "HWaddr " << iif.mac() << std::endl;
+
+            if ( mii_test.find("not supported") == std::string::npos || verbose)
+                std::cout << more::spaces(indent) << "MII:" << mii_test << RESET() << std::endl;
+
+            // display wireless config if avaiable
+            //
+
+            try {
+                char buffer[128];
+
+                wireless_info winfo = iif.wifi_info();
+                std::cout << more::spaces(indent) << winfo.b.name << " ESSID:" << winfo.b.essid << " Mode:" << 
+                    iw_operation_mode[winfo.b.mode] << " Frequency:" << winfo.b.freq << std::endl; 
+
+                // print bit-rate 
+                int s = 0;
+                if (winfo.has_bitrate) {
+                    if (!s++)
+                        std::cout << more::spaces(indent);
+                    iw_print_bitrate(buffer,sizeof(buffer), winfo.bitrate.value);
+                    std::cout << "Bit-Rate:" << buffer << ' ';
+                }
+
+                if (winfo.has_ap_addr) {
+                    if (!s++)
+                        std::cout << more::spaces(indent);
+                    std::cout << "Access Point: " << iw_sawap_ntop(&winfo.ap_addr, buffer);
+                }
+ 
+                if (s > 0)
+                   std::cout << std::endl; 
+            }
+            catch(...) {
+                if (verbose)
+                    std::cout << more::spaces(indent) << "no wireless extensions." << std::endl;
+            }
+            // display wireless info, if available
+            //
+
             std::tr1::tuple<double, double, double, double> wi = proc::get_wireless(*it);
             if ( std::tr1::get<0>(wi) != 0.0 ||
                  std::tr1::get<1>(wi) != 0.0 ||
                  std::tr1::get<2>(wi) != 0.0 ||
                  std::tr1::get<3>(wi) != 0.0 )
             {
-                std::cout << std::string(maxlen+1,' ') << "wifi_status:" << std::tr1::get<0>(wi) <<
+                std::cout << more::spaces(indent) << "wifi_status:" << std::tr1::get<0>(wi) <<
                             " link:" << std::tr1::get<1>(wi) << " level:" << std::tr1::get<2>(wi) << 
                             " noise:" << std::tr1::get<3>(wi) << std::endl; 
             }
 
-            // display HWaddr
-            std::cout << std::string(maxlen+1,' ') << "HWaddr " << iif.mac() << std::endl;
-
             // display flags, mtu and metric
-            std::cout << std::string(maxlen+1,' ') << iif.flags_str() 
+            //
+
+            std::cout << more::spaces(indent) << iif.flags_str() 
                       << "MTU:" << iif.mtu() << " Metric:" << iif.metric() << std::endl; 
 
             // display inet addr if set
+            //
+
             std::string inet_addr = iif.inet_addr<SIOCGIFADDR>();
             if ( inet_addr.size() ) {
-                std::cout << std::string(maxlen+1,' ') << "inet addr:" << inet_addr  
+                std::cout << more::spaces(indent) << "inet addr:" << inet_addr  
                 << " Bcast:" << iif.inet_addr<SIOCGIFBRDADDR>() 
                 << " Mask:" << iif.inet_addr<SIOCGIFNETMASK>(); 
 
@@ -100,19 +161,25 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             }
 
             // display inet6 addr if set
+            //
+
             std::string inet6_addr = iif.inet6_addr();
             if (inet6_addr.size())
-                std::cout << std::string(maxlen+1,' ') << inet6_addr << std::endl;
+                std::cout << more::spaces(indent) << inet6_addr << std::endl;
 
             // display map info
+            //
+
             ifmap m = iif.map();
-            std::cout << std::hex << std::string(maxlen+1,' ') << "base_addr:0x" << m.base_addr;
+            std::cout << std::hex << more::spaces(indent) << "base_addr:0x" << m.base_addr;
             if (m.mem_start)
                 std::cout << " memory:0x" << m.mem_start << "-0x" << m.mem_end;
 
             std::cout << std::dec << " irq:" << static_cast<int>(m.irq);
 
             // display irq events per cpu
+            //
+
             std::vector<int> cpuint = proc::get_interrupt_counter(static_cast<int>(m.irq));
             for(unsigned int n = 0; n != cpuint.size(); ++n)
                 std::cout << " cpu" << n << "=" << cpuint[n];
@@ -121,19 +188,23 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
                       << " port:"<< static_cast<int>(m.port) << std::dec << std::endl;
 
             // display stats
+            //
+
             net::ifr::stats s = iif.get_stats();
-            std::cout << std::string(maxlen+1,' ') << "Rx bytes:" << s.rx_bytes << " packets:" << s.rx_packets << 
+            std::cout << more::spaces(indent) << "Rx bytes:" << s.rx_bytes << " packets:" << s.rx_packets << 
                          " errors:" << s.rx_errs << " dropped:" << s.rx_drop << 
                          " overruns: " << s.rx_fifo << " frame:" << s.rx_frame << std::endl;
  
-            std::cout << std::string(maxlen+1,' ') << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets << 
+            std::cout << more::spaces(indent) << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets << 
                          " errors:" << s.tx_errs << " dropped:" << s.tx_drop << 
-                         " overruns: " << s.tx_fifo << " colls:" << s.tx_colls << std::endl;
+                         " overruns: " << s.tx_fifo << " colls:" << s.tx_colls << " txqueuelen:" << iif.txqueuelen() << std::endl;
                                                  
             // ... display drvinfo if available
+            //
+
             std::pair<bool, const ethtool_drvinfo *> info = iif.ether_info();
             if (info.first)  {
-                std::cout << std::string(maxlen+1,' ') << "ether_driver:" << info.second->driver << " version:" << info.second->version;  
+                std::cout << more::spaces(indent) << "ether_driver:" << info.second->driver << " version:" << info.second->version;  
                 if (strlen(info.second->fw_version))
                     std::cout << " firmware:" << info.second->fw_version; 
                 if (strlen(info.second->bus_info))
@@ -212,7 +283,7 @@ main(int argc, char *argv[])
     // std::copy(ifs.begin(), ifs.end(), std::ostream_iterator<std::string>(std::cout, " "));
 
     show_interfaces(all, verb, ifs);
-
+    
     return 0;
 }
 
