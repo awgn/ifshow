@@ -47,7 +47,7 @@ typedef more::colorful< TYPELIST(more::ecma::bold) > BOLD;
 typedef more::colorful< TYPELIST(more::ecma::reset) > RESET;
 
 
-struct comp_length : std::binary_function<bool, const std::string &, const std::string &>
+struct comp_length : std::binary_function<const std::string &, const std::string &, bool>
 {
     template <typename T>
     bool operator()(const T &lhs, const T &rhs) const
