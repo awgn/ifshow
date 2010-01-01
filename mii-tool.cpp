@@ -382,7 +382,7 @@ do_one_xcvr(int skfd, const char *ifname, int maybe)
 
     if (ifr_prep(skfd, ifname, maybe))
         // return 1;
-        return std::string("MIIPHY interface not supported");
+        return std::string("MIIPHY interface not supported.");
 
     if (opt_reset) {
         // printf("resetting the transceiver...\n");
