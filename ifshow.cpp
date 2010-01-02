@@ -359,10 +359,10 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 static 
 const char usage_str[] = "\
 Usage:%s [options]\n\
--a, --all            display all interfaces                   \n\
--v, --verbose        increase verbosity\n\
--V, --version        display the version and exit.            \n\
--h, --help           print this help.                         \n";
+   -a, --all            display all interfaces\n\
+   -v, --verbose        increase verbosity\n\
+   -V, --version        display the version and exit\n\
+   -h, --help           print this help\n";
 
 
 static const struct option long_options[] = {
