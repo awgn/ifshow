@@ -324,8 +324,8 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
                                                    PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id);
 
                         std::cout << more::spaces(indent) << std::hex 
-                        << "vendor_id: " << dev->vendor_id << " device_id: " 
-                        << dev->device_id << " " << pci_class << ": " << pci_name << std::dec << std::endl;
+                        << pci_class << ": " << pci_name << std::dec << std::endl
+                        << more::spaces(indent)  << "vendor_id: " << dev->vendor_id << " device_id: " << dev->device_id << std::endl; 
 
                     }
                 }
