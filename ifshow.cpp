@@ -318,11 +318,14 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
                     if (dev) { // got it!!!
 
                         char *pci_name, *pci_class;
-                        pci_class = pci_lookup_name(pacc, pci_classbuf, sizeof(pci_classbuf), PCI_LOOKUP_CLASS, dev->device_class);
-                        pci_name = pci_lookup_name(pacc, pci_namebuf, sizeof(pci_namebuf), PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id);
+                        pci_class = pci_lookup_name(pacc, pci_classbuf, sizeof(pci_classbuf), 
+                                                    PCI_LOOKUP_CLASS, dev->device_class);
+                        pci_name = pci_lookup_name(pacc, pci_namebuf, sizeof(pci_namebuf), 
+                                                   PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id);
 
                         std::cout << more::spaces(indent) << std::hex 
-                        << "vendor_id: " << dev->vendor_id << " device_id: " << dev->device_id << ' ' << pci_class << ": " << pci_name << std::dec << std::endl;
+                        << "vendor_id: " << dev->vendor_id << " device_id: " 
+                        << dev->device_id << " " << pci_class << ": " << pci_name << std::dec << std::endl;
 
                     }
                 }
