@@ -41,6 +41,10 @@
 #include <proc_net_dev.h>
 #include <ifr.h>        
 
+extern "C" {
+#include <pci/pci.h>
+}
+
 extern char *__progname;
 static const char * version = "1.0";
 
@@ -55,6 +59,7 @@ struct comp_length : std::binary_function<const std::string &, const std::string
     { return lhs.length() < rhs.length(); }
 };
 
+
 void
 show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = std::list<std::string>())
 {
@@ -65,6 +70,22 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
     std::list<std::string>::const_iterator it = ifs.begin();
     std::list<std::string>::const_iterator it_end = ifs.end();
+
+    struct pci_access *pacc = pci_alloc();
+
+    // initialize pci library...
+
+    pci_init(pacc);
+    pci_scan_bus(pacc);
+    pci_set_name_list_path(pacc, const_cast<char *>("/usr/share/misc/pci.ids"), 0);
+
+    // create a pci filter...
+    struct pci_filter filter;
+    pci_filter_init(pacc, &filter);
+
+    // buffers for pci functions...
+    //
+    char pci_namebuf[1024], pci_classbuf[128];
 
     for(int n=0; it != it_end; ++it) {
 
@@ -277,17 +298,45 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             //
             
             std::tr1::shared_ptr<ethtool_drvinfo> info(iif.ethtool_info());
-            // std::pair<bool, const ethtool_drvinfo *> info = iif.ethtool_info();
             if (info) {
+
+                char bus_info[16];
+                strncpy(bus_info, info->bus_info, sizeof(bus_info)-1);
+
+                // set filter (and display additional pci info, if available)... 
+                //
+                if ( !pci_filter_parse_slot(&filter, bus_info) )
+                {
+                    struct pci_dev *dev = pacc->devices;
+                    for(;dev; dev=dev->next)
+                    {
+                        pci_fill_info(dev, PCI_FILL_IDENT | PCI_FILL_BASES | PCI_FILL_CLASS); /* Fill in header info we need */
+                        if ( pci_filter_match(&filter, dev) )
+                            break;
+                    }
+                    
+                    if (dev) { // got it!!!
+
+                        char *pci_name, *pci_class;
+                        pci_class = pci_lookup_name(pacc, pci_classbuf, sizeof(pci_classbuf), PCI_LOOKUP_CLASS, dev->device_class);
+                        pci_name = pci_lookup_name(pacc, pci_namebuf, sizeof(pci_namebuf), PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id);
+
+                        std::cout << more::spaces(indent) << std::hex 
+                        << "vendor_id: " << dev->vendor_id << " device_id: " << dev->device_id << ' ' << pci_class << ": " << pci_name << std::dec << std::endl;
+
+                    }
+                }
+
+                // display ethertool_drivinfo...
+                //
                 std::cout << more::spaces(indent) << 
                             "ether_driver:" << info->driver << 
                             " version:" << info->version;  
 
                 if (strlen(info->fw_version))
                     std::cout << " firmware:" << info->fw_version; 
-                if (strlen(info->bus_info))
-                std::cout << " bus:" << info->bus_info;
-                std::cout << std::endl;
+                if (strlen(info->bus_info)) 
+                std::cout << " bus:" << info->bus_info << std::endl;
             }
 
         }
@@ -298,7 +347,8 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             continue;
         }
     }
-        
+
+    pci_cleanup(pacc);    
     std::cout << RESET();
 }
 
