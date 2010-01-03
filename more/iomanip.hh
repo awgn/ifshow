@@ -1,4 +1,4 @@
-/* $Id: iomanip.hh 358 2010-01-01 12:54:55Z nicola.bonelli $ */
+/* $Id: iomanip.hh 363 2010-01-03 10:41:35Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -13,6 +13,8 @@
 
 #include <iostream>
 #include <limits>
+
+#include <string-utils.hh>  // more
 
 namespace more { 
 
@@ -43,9 +45,53 @@ namespace more {
     operator<<(std::basic_ostream<charT,Traits> &__out, _Spaces __s)
     {
         for(int i=0; i < __s._M_n; i++)
-            __out.put(' ');
+            __out.put(__out.widen(' '));
         return __out;
     }
+
+    // token_string input manip
+    //
+
+    class token_string
+    {
+    public:
+        token_string(const std::string &delim)
+        : _M_delim(delim),
+          _M_value()
+        {}
+
+        ~token_string()
+        {}
+
+        friend
+        std::istream & operator>>(std::istream &__in, token_string &rhs)
+        {
+            std::string & __str = rhs;
+            more::getline(__in,__str, rhs._M_delim);
+            return __in;
+        }
+
+        operator const std::string &() const
+        {
+            return _M_value;
+        }
+
+        operator std::string &() 
+        {
+            return _M_value;
+        }
+
+        const std::string &
+        str() const
+        {
+            return _M_value;
+        }
+
+    private:
+        const std::string _M_delim;
+        std::string _M_value;
+    };
+
 
 } // namespace more
 

@@ -1,4 +1,4 @@
-/* $Id: string-utils.hh 357 2009-12-31 14:52:25Z nicola.bonelli $ */
+/* $Id: string-utils.hh 363 2010-01-03 10:41:35Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -19,11 +19,57 @@
 
 namespace more { 
 
+    namespace string_utils 
+    {
+        static const char white_space[] = " \f\n\r\t\v";
+    };
+
+    // extended getline with multiple-char separator
+    //   
+    template<typename CharT, typename Traits, typename Alloc>
+    inline std::basic_istream<CharT, Traits>&
+    getline(std::basic_istream<CharT, Traits>& __in,
+        std::basic_string<CharT, Traits, Alloc>& __str, const std::basic_string<CharT, Traits, Alloc>& __delim)
+    {
+        std::ios_base::iostate __err = std::ios_base::goodbit;
+
+        const std::string::size_type n = __str.max_size();
+        char c = __in.rdbuf()->sgetc();
+        unsigned int extracted = 0;
+
+        __str.erase();
+        while ( extracted < n && c != EOF &&
+                __delim.find(c) == std::string::npos ) 
+        {
+            __str += c;
+            ++extracted;
+            c = __in.rdbuf()->snextc();
+        }
+
+        while ( c != EOF &&
+                __delim.find(c) != std::string::npos )
+        {
+            ++extracted;
+            c = __in.rdbuf()->snextc();    
+        }            
+
+        if ( c == EOF )
+            __err |= std::ios_base::eofbit;
+
+        if (!extracted)
+            __err |= std::ios_base::failbit;
+
+        if (__err)
+            __in.setstate(__err);
+
+        return __in;
+    }
+
     // trim
     //
 
     static inline std::string
-    trim(const std::string &s, const char *str = " \t\n\r", int lr = 0)
+    trim(const std::string &s, const char *str = string_utils::white_space, int lr = 0)
     {
         std::string::size_type b = lr > 0 ? std::string::npos : s.find_first_not_of(str);
         std::string::size_type e = lr < 0 ? s.size() : s.find_last_not_of(str);
@@ -33,13 +79,13 @@ namespace more {
     }
 
     static inline std::string 
-    left_trim(const std::string &s, const char *str = " \t\n\r")
+    left_trim(const std::string &s, const char *str = string_utils::white_space)
     {
         return trim(s,str,-1);
     }
 
     static inline std::string
-    right_trim(const std::string &s, const char *str = " \t\n\r")
+    right_trim(const std::string &s, const char *str = string_utils::white_space)
     {
         return trim(s,str,1);
     }
@@ -48,7 +94,7 @@ namespace more {
     //
 
     static inline std::string &
-    left_trim_(std::string &s, const char *str = " \t\n\r") // in-place...
+    left_trim_(std::string &s, const char *str = string_utils::white_space) // in-place...
     {
         std::string::size_type b = s.find_first_not_of(str);
         s.erase(0,b);
@@ -56,7 +102,7 @@ namespace more {
     }
 
     static inline std::string &
-    right_trim_(std::string &s, const char *str = " \t\n\r") // in-place...
+    right_trim_(std::string &s, const char *str = string_utils::white_space) // in-place...
     {
         std::string::size_type e = s.find_last_not_of(str);
         s.erase(e+1);
@@ -64,7 +110,7 @@ namespace more {
     }
 
     static inline std::string &
-    trim_(std::string &s, const char *str = " \t\n\r") // in-place...
+    trim_(std::string &s, const char *str = string_utils::white_space) // in-place...
     {
         right_trim_(s,str);
         left_trim_(s,str);
