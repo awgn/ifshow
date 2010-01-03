@@ -32,7 +32,6 @@
 #include <getopt.h>
 
 #include <colorful.hh>      // more
-#include <token.hh>         // more
 #include <iomanip.hh>       // more
 #include <string-utils.hh>  // more
 
@@ -325,7 +324,8 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
                         std::cout << more::spaces(indent) << std::hex 
                         << pci_class << ": " << pci_name << std::dec << std::endl
-                        << more::spaces(indent)  << "vendor_id: " << dev->vendor_id << " device_id: " << dev->device_id << std::endl; 
+                        << more::spaces(indent)  << "vendor_id: " << dev->vendor_id 
+                        << " device_id: " << dev->device_id << " device_class: " << dev->device_class << std::endl; 
 
                     }
                 }

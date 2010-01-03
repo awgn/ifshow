@@ -20,8 +20,9 @@
 #ifndef _PROC_INTERRUPT_H_
 #define _PROC_INTERRUPT_H_ 
 
-#include <token.hh>
-#include <lexical_cast.hh>
+#include <lexical_cast.hh>  // more
+#include <string-utils.hh>  // more
+
 #include <proc_files.h>
 
 #include <iostream>

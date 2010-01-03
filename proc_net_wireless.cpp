@@ -30,7 +30,7 @@ namespace proc {
         /* skip 2 lines */
         proc_net_wireless >> more::ignore_line >> more::ignore_line;
 
-        more::token_string<':'> if_name;
+        more::token_string if_name(":");
         while (proc_net_wireless >> if_name) {
 
             std::string name = more::trim(if_name);

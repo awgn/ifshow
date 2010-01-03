@@ -28,7 +28,6 @@
 #include <string>
 #include <list>
 
-#include <token.hh>         // more
 #include <string-utils.hh>  // more
 
 namespace proc 

@@ -33,7 +33,7 @@ namespace proc {
 
         proc_interrupt >> more::ignore_line;
 
-        more::token_string<':'> intstr;
+        more::token_string intstr(":");
 
         while( proc_interrupt >> intstr )
         {

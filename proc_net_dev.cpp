@@ -32,7 +32,7 @@ namespace proc {
         //    
         proc_net_dev >> more::ignore_line >> more::ignore_line;
 
-        more::token_string<':'> if_name;
+        more::token_string if_name(":");
         while (proc_net_dev >> if_name)
         {
             ret.push_back(trim(if_name));
