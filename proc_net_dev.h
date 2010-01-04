@@ -20,12 +20,12 @@
 #ifndef _PROC_NET_DEV_H_
 #define _PROC_NET_DEV_H_ 
 
-#include <proc_files.h>
-
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <list>
+
+#include <proc_files.h>
 
 #include <string-utils.hh>  // more
 

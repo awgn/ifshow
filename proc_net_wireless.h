@@ -20,8 +20,6 @@
 #ifndef _PROC_NET_WIRELESS_H_
 #define _PROC_NET_WIRELESS_H_ 
 
-#include <proc_files.h>
-
 #include <tr1/tuple>
 #include <fstream>
 #include <sstream>
@@ -29,6 +27,8 @@
 #include <list>
 
 #include <string-utils.hh>  // more
+
+#include <proc_files.h>
 
 namespace proc 
 {

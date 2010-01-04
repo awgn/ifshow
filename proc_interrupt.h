@@ -20,15 +20,15 @@
 #ifndef _PROC_INTERRUPT_H_
 #define _PROC_INTERRUPT_H_ 
 
-#include <lexical_cast.hh>  // more
-#include <string-utils.hh>  // more
-
-#include <proc_files.h>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
+
+#include <lexical_cast.hh>  // more
+#include <string-utils.hh>  // more
+
+#include <proc_files.h>
 
 namespace proc 
 {
