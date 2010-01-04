@@ -142,12 +142,16 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             // display Link-Speed (if supported)
             //
             if (ecmd) {
-                uint32_t speed = (ecmd->speed_hi << 16)|ecmd->speed;
 
+#if LINUX_KERNEL_CODE >= KERNEL_VERSION(2,6,27)
+                uint32_t speed = ethtool_cmd_speed(ecmd);
+#else
+                uint32_t speed = ecmd->speed;
+#endif
                 std::cout << "Link:" << (iif.ethtool_link() ? "yes " : "no ");
 
                 if (speed != 0 && speed != (uint16_t)(-1) && speed != (uint32_t)(-1))
-                    std::cout << "Speed:" << ((ecmd->speed_hi << 16)|ecmd->speed) << "Mb/s ";
+                    std::cout << "Speed:" << speed << "Mb/s ";
                
                 // display half/full duplex...
                 std::cout << "Duplex:"; 
