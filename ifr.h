@@ -29,6 +29,7 @@
 #include <arpa/inet.h>
 
 #include <linux/ethtool.h>
+#include <linux/version.h>
 #include <linux/sockios.h>
 #include <asm/types.h>
 
