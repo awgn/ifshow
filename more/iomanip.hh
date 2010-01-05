@@ -1,4 +1,4 @@
-/* $Id: iomanip.hh 363 2010-01-03 10:41:35Z nicola.bonelli $ */
+/* $Id: iomanip.hh 367 2010-01-04 17:12:59Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -87,11 +87,25 @@ namespace more {
             return _M_value;
         }
 
-    private:
+    protected:
         const std::string _M_delim;
         std::string _M_value;
     };
 
+    struct token_line : public token_string
+    {
+        token_line()
+        : token_string("\r\n")
+        {}
+
+        friend
+        std::istream & operator>>(std::istream &__in, token_line &rhs)
+        {
+            std::string & __str = rhs;
+            more::getline(__in,__str, rhs._M_delim);
+            return __in;
+        }
+    };
 
 } // namespace more
 

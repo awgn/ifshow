@@ -296,7 +296,7 @@ namespace net {
                 more::token_string if_name(":");
                 ss >> if_name;
 
-                std::string name = more::trim(static_cast<std::string>(if_name));
+                std::string name = more::trim_copy(static_cast<std::string>(if_name));
 
                 if ( name != _M_name)
                     continue;
