@@ -1,4 +1,4 @@
-/* $Id: string-utils.hh 370 2010-01-05 14:58:31Z nicola.bonelli $ */
+/* $Id: string-utils.hh 372 2010-01-06 17:50:57Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -26,14 +26,19 @@ namespace more {
     namespace string_utils 
     {
         static const char white_space[] = " \f\n\r\t\v";
+
+        const bool escape_disabled = false;
+        const bool escape_enabled  = true;
     };
 
-    // extended getline with multiple-char separator
-    //   
+    // extended getline with optional escape support and multiple-char separator...
+    //
+
     template<typename CharT, typename Traits, typename Alloc>
     inline std::basic_istream<CharT, Traits>&
     getline(std::basic_istream<CharT, Traits>& __in,
-        std::basic_string<CharT, Traits, Alloc>& __str, const std::basic_string<CharT, Traits, Alloc>& __delim)
+        std::basic_string<CharT, Traits, Alloc>& __str, 
+        const std::basic_string<CharT, Traits, Alloc>& __delim, bool do_escape = string_utils::escape_disabled)
     {
         std::ios_base::iostate __err = std::ios_base::goodbit;
 
@@ -41,13 +46,39 @@ namespace more {
         char c = __in.rdbuf()->sgetc();
         unsigned int extracted = 0;
 
-        __str.erase();
-        while ( extracted < n && c != EOF &&
-                __delim.find(c) == std::string::npos ) 
-        {
-            __str += c;
-            ++extracted;
-            c = __in.rdbuf()->snextc();
+        bool esc = false;
+        __str.erase();        
+
+        if (do_escape) {   
+            while ( extracted < n && c != EOF &&
+                    (__delim.find(c) == std::string::npos || esc) ) 
+            {
+                if ( c == '\\' && !esc) {
+                    esc = true;
+                    c = __in.rdbuf()->snextc();
+                    continue;
+                }
+
+                if (esc) {
+                    esc = false;
+                    if (__delim.find(c) == std::string::npos && c !='\\') {
+                        __str += '\\'; 
+                        ++extracted;
+                    }
+                }
+
+                __str += c;
+                ++extracted;
+                c = __in.rdbuf()->snextc();
+            }
+        } else {
+            while ( extracted < n && c != EOF &&
+                    __delim.find(c) == std::string::npos ) 
+            {
+                __str += c;
+                ++extracted;
+                c = __in.rdbuf()->snextc();
+            }
         }
 
         while ( c != EOF &&
@@ -68,6 +99,8 @@ namespace more {
 
         return __in;
     }
+
+
 
     // split a string into a container 
     //

@@ -1,4 +1,4 @@
-/* $Id: iomanip.hh 367 2010-01-04 17:12:59Z nicola.bonelli $ */
+/* $Id: iomanip.hh 373 2010-01-07 09:07:08Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -55,9 +55,10 @@ namespace more {
     class token_string
     {
     public:
-        token_string(const std::string &delim)
+        token_string(const std::string &delim, bool esc = string_utils::escape_disabled)
         : _M_delim(delim),
-          _M_value()
+          _M_value(),
+          _M_esc(esc)
         {}
 
         ~token_string()
@@ -67,7 +68,7 @@ namespace more {
         std::istream & operator>>(std::istream &__in, token_string &rhs)
         {
             std::string & __str = rhs;
-            more::getline(__in,__str, rhs._M_delim);
+            more::getline(__in, __str, rhs._M_delim, rhs._M_esc);
             return __in;
         }
 
@@ -90,19 +91,23 @@ namespace more {
     protected:
         const std::string _M_delim;
         std::string _M_value;
+        bool _M_esc;
     };
+
+    // token_string with escape support enabled
+    //
 
     struct token_line : public token_string
     {
         token_line()
-        : token_string("\r\n")
+        : token_string("\n", string_utils::escape_enabled)
         {}
 
         friend
         std::istream & operator>>(std::istream &__in, token_line &rhs)
         {
             std::string & __str = rhs;
-            more::getline(__in,__str, rhs._M_delim);
+            more::getline(__in,__str, rhs._M_delim, rhs._M_esc);
             return __in;
         }
     };
