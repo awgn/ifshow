@@ -1,4 +1,4 @@
-/* $Id: iomanip.hh 373 2010-01-07 09:07:08Z nicola.bonelli $ */
+/* $Id: iomanip.hh 378 2010-01-10 20:27:24Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -21,6 +21,9 @@ namespace more {
     // Jusuttis The C++ Standard Library: User-defined manipulators (charter 13)
     //
 
+    // ignore_line
+    //
+
     template <class charT, class Traits>
     inline
     std::basic_istream<charT,Traits> &
@@ -29,6 +32,9 @@ namespace more {
         __in.ignore(std::numeric_limits<std::streamsize>::max(), __in.widen('\n'));
         return __in;
     }
+
+    // spaces 
+    //
 
     struct _Spaces { int _M_n; };
 
@@ -64,8 +70,9 @@ namespace more {
         ~token_string()
         {}
 
-        friend
-        std::istream & operator>>(std::istream &__in, token_string &rhs)
+        template <class charT, class Traits>
+        friend inline std::basic_istream<charT,Traits> & 
+        operator>>(std::basic_istream<charT,Traits> &__in, token_string &rhs)
         {
             std::string & __str = rhs;
             more::getline(__in, __str, rhs._M_delim, rhs._M_esc);
@@ -103,8 +110,9 @@ namespace more {
         : token_string("\n", string_utils::escape_enabled)
         {}
 
-        friend
-        std::istream & operator>>(std::istream &__in, token_line &rhs)
+        template <class charT, class Traits>
+        friend inline std::basic_istream<charT,Traits> & 
+        operator>>(std::basic_istream<charT,Traits> &__in, token_line &rhs)
         {
             std::string & __str = rhs;
             more::getline(__in,__str, rhs._M_delim, rhs._M_esc);

@@ -1,4 +1,4 @@
-/* $Id: colorful.hh 54 2009-02-15 20:13:13Z nicola.bonelli $ */
+/* $Id: colorful.hh 378 2010-01-10 20:27:24Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -52,8 +52,9 @@ namespace more {
         typedef T type_value;
     };
 
-    template <typename T>
-    std::ostream & operator<<(std::ostream & out, colorful<T>)
+    template <typename CharT, typename Traits, typename T>
+    inline std::basic_ostream<CharT, Traits> & 
+    operator<<(std::basic_ostream<CharT, Traits> &out, colorful<T>)
     {
         out << "\E["; ecma_parameter(out,typename colorful<T>::type_value()); out << "m";
         return out;
@@ -64,8 +65,7 @@ namespace more {
     {}
 
     template <typename T>
-    static inline 
-    void ecma_parameter(std::ostream &out, T)
+    inline void ecma_parameter(std::ostream &out, T)
     {
         out << ";" << T::head::attribute_value; 
         ecma_parameter(out, typename T::tail() ); 
