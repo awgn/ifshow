@@ -1,4 +1,4 @@
-/* $Id: iomanip.hh 378 2010-01-10 20:27:24Z nicola.bonelli $ */
+/* $Id: iomanip.hh 385 2010-01-16 10:35:28Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -21,7 +21,7 @@ namespace more {
     // Jusuttis The C++ Standard Library: User-defined manipulators (charter 13)
     //
 
-    // ignore_line
+    // >> ignore_line
     //
 
     template <class charT, class Traits>
@@ -33,7 +33,7 @@ namespace more {
         return __in;
     }
 
-    // spaces 
+    // << spaces(n) 
     //
 
     struct _Spaces { int _M_n; };
@@ -55,70 +55,99 @@ namespace more {
         return __out;
     }
 
-    // token_string input manip
+    // >> basic_token<> 
     //
 
-    class token_string
+    template<typename CharT, typename Traits, typename Alloc>
+    class basic_token
     {
     public:
-        token_string(const std::string &delim, bool esc = string_utils::escape_disabled)
+        basic_token(const std::basic_string<CharT,Traits,Alloc> &delim, bool esc = string_utils::escape_disabled)
         : _M_delim(delim),
           _M_value(),
           _M_esc(esc)
         {}
 
-        ~token_string()
-        {}
+        ~basic_token()
+        {}\
 
-        template <class charT, class Traits>
-        friend inline std::basic_istream<charT,Traits> & 
-        operator>>(std::basic_istream<charT,Traits> &__in, token_string &rhs)
+        friend inline std::basic_istream<CharT,Traits> & 
+        operator>>(std::basic_istream<CharT,Traits> &__in, basic_token &rhs)
         {
-            std::string & __str = rhs;
+            std::basic_string<CharT,Traits,Alloc> & __str = rhs;
             more::getline(__in, __str, rhs._M_delim, rhs._M_esc);
             return __in;
         }
 
-        operator const std::string &() const
+        operator const std::basic_string<CharT,Traits,Alloc> &() const
         {
             return _M_value;
         }
 
-        operator std::string &() 
+        operator std::basic_string<CharT,Traits,Alloc> &() 
         {
             return _M_value;
         }
 
-        const std::string &
+        const std::basic_string<CharT,Traits,Alloc> &
         str() const
         {
             return _M_value;
         }
 
     protected:
-        const std::string _M_delim;
-        std::string _M_value;
+        const std::basic_string<CharT,Traits,Alloc> _M_delim;
+        std::basic_string<CharT,Traits,Alloc> _M_value;
         bool _M_esc;
     };
 
-    // token_string with escape support enabled
+    // >> string_token, wstring_token
     //
 
-    struct token_line : public token_string
+    typedef basic_token<std::string::value_type, std::string::traits_type, std::string::allocator_type> 
+        string_token;
+
+    typedef basic_token<std::wstring::value_type, std::wstring::traits_type, std::wstring::allocator_type> 
+        wstring_token;
+
+
+    // >> basic_line (with escape support enabled)
+    //
+
+    template<typename CharT, typename Traits, typename Alloc>
+    struct basic_line : public basic_token<CharT,Traits,Alloc>
     {
-        token_line()
-        : token_string("\n", string_utils::escape_enabled)
+        const char * lf(char)
+        {
+            return "\n";
+        }
+
+        const wchar_t * lf(wchar_t)
+        {
+            return L"\n";
+        }
+
+        basic_line()
+        : basic_token<CharT,Traits,Alloc>( lf(CharT()), string_utils::escape_enabled )
         {}
 
-        template <class charT, class Traits>
-        friend inline std::basic_istream<charT,Traits> & 
-        operator>>(std::basic_istream<charT,Traits> &__in, token_line &rhs)
+        friend inline std::basic_istream<CharT,Traits> & 
+        operator>>(std::basic_istream<CharT,Traits> &__in, basic_line &rhs)
         {
-            std::string & __str = rhs;
+            std::basic_string<CharT,Traits,Alloc> & __str = rhs;
             more::getline(__in,__str, rhs._M_delim, rhs._M_esc);
             return __in;
         }
     };
+
+    // >> string_line, wstring_line
+    //
+
+    typedef basic_line<std::string::value_type, std::string::traits_type, std::string::allocator_type> 
+        string_line;
+
+    typedef basic_line<std::wstring::value_type, std::wstring::traits_type, std::wstring::allocator_type> 
+        wstring_line;
 
 } // namespace more
 

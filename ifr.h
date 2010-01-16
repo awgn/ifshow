@@ -293,7 +293,7 @@ namespace net {
             stats ret;
             while (getline(proc_net_dev,line)) { 
                 std::istringstream ss(line);
-                more::token_string if_name(":");
+                more::string_token if_name(":");
                 ss >> if_name;
 
                 std::string name = more::trim_copy(static_cast<std::string>(if_name));
