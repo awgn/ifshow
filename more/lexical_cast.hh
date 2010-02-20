@@ -1,4 +1,4 @@
-/* $Id: lexical_cast.hh 45 2009-02-14 10:20:17Z nicola.bonelli $ */
+/* $Id: lexical_cast.hh 461 2010-02-19 09:46:07Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -36,20 +36,52 @@ namespace more {
             {}
     };
 
-    template <typename Dst, typename Src>
-    Dst lexical_cast(const Src &arg)
+    template <typename Target, typename Source>
+    struct lexical_cast_policy
     {
-        std::stringstream i;
-        Dst ret;
-
-        if( !(i << arg) || !(i>>ret) || !(i>> std::ws).eof()) {
-#ifdef __EXCEPTIONS
-            throw bad_lexical_cast();
-#else
-            assert(!"bad lexical cast");            
-#endif
+        static std::stringstream &
+        _S_ss()
+        {
+            static __thread std::stringstream * ret;
+            if (!ret) 
+                ret = new std::stringstream;
+            return *ret;
         }
-        return ret;
+
+        static 
+        Target apply(const Source &arg)
+        {
+            Target ret;
+            _S_ss().clear();
+
+            if(!( _S_ss() << arg &&  _S_ss() >> ret && (_S_ss() >> std::ws).eof() )) 
+            {
+                _S_ss().str(std::string());
+                throw bad_lexical_cast();
+            }
+            return ret;
+        }
+    };
+
+    // template <typename Target, typename Source>
+    // std::stringstream lexical_cast_policy<Target,Source>::_S_ss;
+
+    // null cast optimization...
+    //
+    template <typename T>
+    struct lexical_cast_policy<T,T>
+    {
+        static 
+        const T & apply(const T &arg)
+        {
+            return arg;
+        }
+    };
+
+    template <typename Target, typename Source> 
+    Target lexical_cast(const Source &arg)
+    {
+        return lexical_cast_policy<Target,Source>::apply(arg);
     }  
 
 } // namespace more

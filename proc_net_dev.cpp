@@ -19,6 +19,7 @@
 
 #include <proc_net_dev.h>
 #include <iomanip.hh>
+#include <string-utils.hh>
 
 namespace proc {
 
@@ -32,10 +33,10 @@ namespace proc {
         //    
         proc_net_dev >> more::ignore_line >> more::ignore_line;
 
-        more::token_string if_name(":");
+        more::string_token if_name(":");
         while (proc_net_dev >> if_name)
         {
-            ret.push_back(trim(if_name));
+            ret.push_back(more::trim_copy(if_name.str()));
             proc_net_dev >> more::ignore_line;
         }
 

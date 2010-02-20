@@ -1,4 +1,4 @@
-/* $Id: typelist.hh 231 2009-09-16 14:49:20Z nicola.bonelli $ */
+/* $Id: typelist.hh 454 2010-02-12 22:06:55Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -48,205 +48,203 @@
 //
 
 #ifndef TYPELIST
-#define TYPELIST_1(a)                  mtp::TL::typelist<a,mtp::TL::null>
-#define TYPELIST_2(a,...)              mtp::TL::typelist<a,TYPELIST_1(__VA_ARGS__) >
-#define TYPELIST_3(a,...)              mtp::TL::typelist<a,TYPELIST_2(__VA_ARGS__) >
-#define TYPELIST_4(a,...)              mtp::TL::typelist<a,TYPELIST_3(__VA_ARGS__) >
-#define TYPELIST_5(a,...)              mtp::TL::typelist<a,TYPELIST_4(__VA_ARGS__) >
-#define TYPELIST_6(a,...)              mtp::TL::typelist<a,TYPELIST_5(__VA_ARGS__) >
-#define TYPELIST_7(a,...)              mtp::TL::typelist<a,TYPELIST_6(__VA_ARGS__) >
-#define TYPELIST_8(a,...)              mtp::TL::typelist<a,TYPELIST_7(__VA_ARGS__) >
-#define TYPELIST_9(a,...)              mtp::TL::typelist<a,TYPELIST_8(__VA_ARGS__) >
-#define TYPELIST_10(a,...)             mtp::TL::typelist<a,TYPELIST_9(__VA_ARGS__) >
-#define TYPELIST_11(a,...)             mtp::TL::typelist<a,TYPELIST_10(__VA_ARGS__) >
-#define TYPELIST_12(a,...)             mtp::TL::typelist<a,TYPELIST_11(__VA_ARGS__) >
-#define TYPELIST_13(a,...)             mtp::TL::typelist<a,TYPELIST_12(__VA_ARGS__) >
-#define TYPELIST_14(a,...)             mtp::TL::typelist<a,TYPELIST_13(__VA_ARGS__) >
-#define TYPELIST_15(a,...)             mtp::TL::typelist<a,TYPELIST_14(__VA_ARGS__) >
-#define TYPELIST_16(a,...)             mtp::TL::typelist<a,TYPELIST_15(__VA_ARGS__) >
-#define TYPELIST_17(a,...)             mtp::TL::typelist<a,TYPELIST_16(__VA_ARGS__) >
-#define TYPELIST_18(a,...)             mtp::TL::typelist<a,TYPELIST_17(__VA_ARGS__) >
-#define TYPELIST_19(a,...)             mtp::TL::typelist<a,TYPELIST_18(__VA_ARGS__) >
-#define TYPELIST_20(a,...)             mtp::TL::typelist<a,TYPELIST_19(__VA_ARGS__) >
+#define TYPELIST_1(a)                  more::TL::typelist<a,more::TL::null>
+#define TYPELIST_2(a,...)              more::TL::typelist<a,TYPELIST_1(__VA_ARGS__) >
+#define TYPELIST_3(a,...)              more::TL::typelist<a,TYPELIST_2(__VA_ARGS__) >
+#define TYPELIST_4(a,...)              more::TL::typelist<a,TYPELIST_3(__VA_ARGS__) >
+#define TYPELIST_5(a,...)              more::TL::typelist<a,TYPELIST_4(__VA_ARGS__) >
+#define TYPELIST_6(a,...)              more::TL::typelist<a,TYPELIST_5(__VA_ARGS__) >
+#define TYPELIST_7(a,...)              more::TL::typelist<a,TYPELIST_6(__VA_ARGS__) >
+#define TYPELIST_8(a,...)              more::TL::typelist<a,TYPELIST_7(__VA_ARGS__) >
+#define TYPELIST_9(a,...)              more::TL::typelist<a,TYPELIST_8(__VA_ARGS__) >
+#define TYPELIST_10(a,...)             more::TL::typelist<a,TYPELIST_9(__VA_ARGS__) >
+#define TYPELIST_11(a,...)             more::TL::typelist<a,TYPELIST_10(__VA_ARGS__) >
+#define TYPELIST_12(a,...)             more::TL::typelist<a,TYPELIST_11(__VA_ARGS__) >
+#define TYPELIST_13(a,...)             more::TL::typelist<a,TYPELIST_12(__VA_ARGS__) >
+#define TYPELIST_14(a,...)             more::TL::typelist<a,TYPELIST_13(__VA_ARGS__) >
+#define TYPELIST_15(a,...)             more::TL::typelist<a,TYPELIST_14(__VA_ARGS__) >
+#define TYPELIST_16(a,...)             more::TL::typelist<a,TYPELIST_15(__VA_ARGS__) >
+#define TYPELIST_17(a,...)             more::TL::typelist<a,TYPELIST_16(__VA_ARGS__) >
+#define TYPELIST_18(a,...)             more::TL::typelist<a,TYPELIST_17(__VA_ARGS__) >
+#define TYPELIST_19(a,...)             more::TL::typelist<a,TYPELIST_18(__VA_ARGS__) >
+#define TYPELIST_20(a,...)             more::TL::typelist<a,TYPELIST_19(__VA_ARGS__) >
 #define TYPELIST(...)                  XPASTE(TYPELIST_ ,PP_NARG(__VA_ARGS__)) ( __VA_ARGS__) 
 #endif /* TYPELIST */
 
-namespace mtp
-{
-    namespace TL 
+namespace more { namespace TL {
+
+    class null {};
+    struct empty {};
+
+    // the typelist element
+    template <typename T, typename U>
+    struct typelist {
+        typedef T head;
+        typedef U tail;
+    };
+
+    // length<TLIST>::value
+    //
+    template <class TLIST> struct length;
+    template <>
+    struct length<null>
     {
-        class null {};
-        struct empty {};
+        enum { value = 0 };
+    };
+    template <typename T,typename U>
+    struct length< typelist<T,U> >
+    {
+        enum { value = 1 + length<U>::value };
+    };
 
-        // the typelist element
-        template <typename T, typename U>
-        struct typelist {
-            typedef T head;
-            typedef U tail;
-        };
+    // at<TLIST>::type
+    //
+    template <class TLIST, int N>
+    struct at
+    {
+        typedef typename at<typename TLIST::tail, N-1>::type type;
+    };
+    template <class TLIST>
+    struct at<TLIST,0>
+    {
+        typedef typename TLIST::head type;
+    };
 
-        // length<TLIST>::value
-        //
-        template <class TLIST> struct length;
-        template <>
-        struct length<null>
-        {
-            enum { value = 0 };
-        };
-        template <typename T,typename U>
-        struct length< typelist<T,U> >
-        {
-            enum { value = 1 + length<U>::value };
-        };
+    // append<TLIST,T>::type
+    //
+    template <class TLIST, typename T> struct append;
+    template <>
+    struct append<null, null>
+    {
+        typedef null type;
+    };
+    template <typename U>
+    struct append<null, U>
+    {
+        typedef TYPELIST(U) type; 
+    };
+    template <typename H, typename T>
+    struct append<null, typelist<H,T> >
+    {
+        typedef typelist <H,T> type;
+    };
+    template <typename H, typename T, typename U>
+    struct append<typelist<H,T> , U>
+    {
+        typedef typelist<H, typename append<T, U>::type > type;
+    };
 
-        // at<TLIST>::type
-        //
-        template <class TLIST, int N>
-        struct at
-        {
-            typedef typename at<typename TLIST::tail, N-1>::type type;
-        };
-        template <class TLIST>
-        struct at<TLIST,0>
-        {
-            typedef typename TLIST::head type;
-        };
+    // insert<TLIST,T>::type
+    //
+    template <class L, typename E> 
+    struct insert
+    {
+        typedef typename append< typelist<E,null>, L>::type type;
+    };
+    template <typename L, typename H, typename T>
+    struct insert<L, typelist<H,T> >
+    {
+        typedef typename append< typelist<H,T>, L>::type type;
+    };
 
-        // append<TLIST,T>::type
-        //
-        template <class TLIST, typename T> struct append;
-        template <>
-        struct append<null, null>
-        {
-            typedef null type;
-        };
-        template <typename U>
-        struct append<null, U>
-        {
-            typedef TYPELIST(U) type; 
-        };
-        template <typename H, typename T>
-        struct append<null, typelist<H,T> >
-        {
-            typedef typelist <H,T> type;
-        };
-        template <typename H, typename T, typename U>
-        struct append<typelist<H,T> , U>
-        {
-            typedef typelist<H, typename append<T, U>::type > type;
-        };
+    // index_of<TLIST,T>::value
+    //
+    template <typename L, typename E> struct index_of;
+    template <typename E>
+    struct index_of<null, E> 
+    {
+        enum { value = -1 };
+    };
+    template <typename T, typename E>
+    struct index_of< typelist<E, T>, E > 
+    {
+        enum { value = 0 };
+    };
+    template <typename H, typename T, typename E>
+    struct index_of< typelist <H, T> , E >
+    {
+        enum { value = index_of<T, E>::value == -1 ? -1 : 1 + index_of<T,E>::value };
+    };
 
-        // insert<TLIST,T>::type
-        //
-        template <class L, typename E> 
-        struct insert
+    // has_type<TLIST,T>::type or fail to compile
+    //
+    template <typename TLIST, typename T>
+    struct has_type 
+    {
+        template <typename V, int n>
+        struct valid_type
         {
-            typedef typename append< typelist<E,null>, L>::type type;
-        };
-        template <typename L, typename H, typename T>
-        struct insert<L, typelist<H,T> >
-        {
-            typedef typename append< typelist<H,T>, L>::type type;
-        };
-
-        // index_of<TLIST,T>::value
-        //
-        template <typename L, typename E> struct index_of;
-        template <typename E>
-        struct index_of<null, E> 
-        {
-            enum { value = -1 };
-        };
-        template <typename T, typename E>
-        struct index_of< typelist<E, T>, E > 
-        {
-            enum { value = 0 };
-        };
-        template <typename H, typename T, typename E>
-        struct index_of< typelist <H, T> , E >
-        {
-            enum { value = index_of<T, E>::value == -1 ? -1 : 1 + index_of<T,E>::value };
+            typedef V type;
         };
 
-        // has_type<TLIST,T>::type or fail to compile
-        //
-        template <typename TLIST, typename T>
-        struct has_type 
-        {
-            template <typename V, int n>
-            struct valid_type
-            {
-                typedef V type;
-            };
+        template <typename V>
+        struct valid_type<V,-1>
+        {};
 
-            template <typename V>
-            struct valid_type<V,-1>
-            {};
+        typedef typename valid_type<T, more::TL::index_of<TLIST,T>::value >::type type;
+    };
 
-            typedef typename valid_type<T, mtp::TL::index_of<TLIST,T>::value >::type type;
-        };
+    // TL::is_same<TLIST1, TLIST2>::value
+    //
+    template <typename T1, typename T2> struct is_same;
+    template <>
+    struct is_same<null,null>
+    {
+        enum { value = true };
+    };
+    template <typename H1, typename T1, typename Q>
+    struct is_same< typelist<H1,T1>, Q>
+    {
+        enum { value = false };
+    };
+    template <typename H1, typename T1, typename Q>
+    struct is_same< Q, typelist<H1,T1> >
+    { 
+        enum { value = false };
+    };
+    template <typename H1, typename T1, typename H2, typename T2>
+    struct is_same < typelist<H1,T1>, typelist<H2,T2> >
+    {
+        enum { value = std::tr1::is_same<H1, H2>::value && is_same<T1, T2>::value };
+    };        
 
-        // TL::is_same<TLIST1, TLIST2>::value
-        //
-        template <typename T1, typename T2> struct is_same;
-        template <>
-        struct is_same<null,null>
-        {
-            enum { value = true };
-        };
-        template <typename H1, typename T1, typename Q>
-        struct is_same< typelist<H1,T1>, Q>
-        {
-            enum { value = false };
-        };
-        template <typename H1, typename T1, typename Q>
-        struct is_same< Q, typelist<H1,T1> >
-        { 
-            enum { value = false };
-        };
-        template <typename H1, typename T1, typename H2, typename T2>
-        struct is_same < typelist<H1,T1>, typelist<H2,T2> >
-        {
-            enum { value = std::tr1::is_same<H1, H2>::value && is_same<T1, T2>::value };
-        };        
+    // TL::apply1<TLIST, UNARY_FUNCTION>::type
+    //
+    template <typename TLIST, typename UF> struct apply1;
+    template <typename UF>
+    struct apply1<null, UF>
+    {
+        typedef null type;
+    };
 
-        // TL::apply1<TLIST, UNARY_FUNCTION>::type
-        //
-        template <typename TLIST, typename UF> struct apply1;
-        template <typename UF>
-        struct apply1<null, UF>
-        {
-            typedef null type;
-        };
+    template <typename H, typename T, typename UF>
+    struct apply1< typelist<H,T>, UF>
+    {
+        typedef typelist <
+        typename UF::template apply<H>::type,
+                 typename apply1<T,UF>::type
+                 > type;
+    };
 
-        template <typename H, typename T, typename UF>
-        struct apply1< typelist<H,T>, UF>
-        {
-            typedef typelist <
-                    typename UF::template apply<H>::type,
-                    typename apply1<T,UF>::type
-                    > type;
-        };
+    // TL::transform<TLIST1, TLIST2, BINARY_FUNCTION>::type
+    //
+    template <typename T1, typename T2, typename BF> struct transform;
+    template <typename BF>
+    struct transform<null, null, BF>
+    {
+        typedef null type;
+    };
 
-        // TL::transform<TLIST1, TLIST2, BINARY_FUNCTION>::type
-        //
-        template <typename T1, typename T2, typename BF> struct transform;
-        template <typename BF>
-        struct transform<null, null, BF>
-        {
-            typedef null type;
-        };
+    template <typename H1, typename T1, typename H2, typename T2, typename BF>
+    struct transform< typelist<H1,T1>, typelist<H2,T2>, BF>
+    {
+        typedef typelist <
+        typename BF::template apply<H1,H2>::type,
+                 typename transform<T1,T2,BF>::type
+                 > type;
+    };
 
-        template <typename H1, typename T1, typename H2, typename T2, typename BF>
-        struct transform< typelist<H1,T1>, typelist<H2,T2>, BF>
-        {
-            typedef typelist <
-                    typename BF::template apply<H1,H2>::type,
-                    typename transform<T1,T2,BF>::type
-                    > type;
-        };
-
-    }
-};
+}  // namespace TL
+}; // namespace more
 
 #endif /* TYPELIST_HH */
