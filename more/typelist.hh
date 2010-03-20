@@ -1,4 +1,4 @@
-/* $Id: typelist.hh 454 2010-02-12 22:06:55Z nicola.bonelli $ */
+/* $Id: typelist.hh 477 2010-03-20 12:09:41Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -10,7 +10,13 @@
 
 #ifndef TYPELIST_HH
 #define TYPELIST_HH
+
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
 #include <tr1/type_traits>
+namespace std { using namespace std::tr1; }
+#else
+#include <type_traits>
+#endif
 
 /* the so-called __VA_NARG__ (PP_NARG) macro from the thread at 
    http://groups.google.com/group/comp.std.c/browse_frm/thread/77ee8c8f92e4a3fb 
@@ -205,7 +211,7 @@ namespace more { namespace TL {
     template <typename H1, typename T1, typename H2, typename T2>
     struct is_same < typelist<H1,T1>, typelist<H2,T2> >
     {
-        enum { value = std::tr1::is_same<H1, H2>::value && is_same<T1, T2>::value };
+        enum { value = std::is_same<H1, H2>::value && is_same<T1, T2>::value };
     };        
 
     // TL::apply1<TLIST, UNARY_FUNCTION>::type

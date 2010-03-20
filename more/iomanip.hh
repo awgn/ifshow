@@ -1,4 +1,4 @@
-/* $Id: iomanip.hh 462 2010-02-20 18:51:04Z nicola.bonelli $ */
+/* $Id: iomanip.hh 476 2010-03-14 16:56:54Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -11,10 +11,11 @@
 #ifndef _IOMANIP_HH_
 #define _IOMANIP_HH_ 
 
+#include <string-utils.hh>  // more
+
 #include <iostream>
 #include <limits>
-
-#include <string-utils.hh>  // more
+#include <string>
 
 namespace more { 
 

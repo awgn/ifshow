@@ -1,4 +1,4 @@
-/* $Id: lexical_cast.hh 461 2010-02-19 09:46:07Z nicola.bonelli $ */
+/* $Id: lexical_cast.hh 476 2010-03-14 16:56:54Z nicola.bonelli $ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <sstream>
 #include <cassert>
+#include <string>
 
 /////////////////////////////////////////////////////////////
 // lexical_cast ala boost, inspired to that of Kevlin Henney

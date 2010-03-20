@@ -98,7 +98,7 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // in case the list is given, skip the interface if not included
             //
-            if (iflist.size() &&
+            if (!iflist.empty() &&
                 find(iflist.begin(), iflist.end(), *it) == iflist.end())
                 continue;
 
