@@ -1,4 +1,4 @@
-/* $Id: string-utils.hh 384 2010-01-14 15:25:41Z nicola.bonelli $ */
+/* $Id$ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -8,13 +8,12 @@
  * ----------------------------------------------------------------------------
  */
 
-#ifndef _STRING_UTILS_HH_
-#define _STRING_UTILS_HH_ 
+#ifndef _MORE_STRING_UTILS_HPP_
+#define _MORE_STRING_UTILS_HPP_ 
 
 #include <fstream>
 #include <sstream>
 #include <string>
-
 #include <algorithm>
 #include <iterator>
 #include <limits>
@@ -347,20 +346,20 @@ namespace more {
                          typename std::basic_string<CharT,Traits,Alloc>::value_type>
     {
         capitalize_op()
-        : _M_state(0)
+        : m_state(0)
         {}
 
         typename std::basic_string<CharT,Traits,Alloc>::value_type
         operator()(typename std::basic_string<CharT,Traits,Alloc>::value_type c) const
         {
             if ( ::isspace(c) ) {
-                _M_state = 0;
+                m_state = 0;
                 return c;
             }
-            return _M_state++ ? ::tolower(c) : ::toupper(c);
+            return m_state++ ? ::tolower(c) : ::toupper(c);
         }
 
-        mutable int _M_state;
+        mutable int m_state;
     };
 
     template<typename CharT, typename Traits, typename Alloc>
@@ -400,7 +399,6 @@ namespace more {
         return s;
     }
 
-
 } // namespace more
 
-#endif /* _STRING_UTILS_HH_ */
+#endif /* _STRING_UTILS_HPP_ */

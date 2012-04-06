@@ -1,4 +1,4 @@
-/* $Id: iomanip.hh 476 2010-03-14 16:56:54Z nicola.bonelli $ */
+/* $Id$ */
 /*
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -8,10 +8,10 @@
  * ----------------------------------------------------------------------------
  */
 
-#ifndef _IOMANIP_HH_
-#define _IOMANIP_HH_ 
+#ifndef _MORE_IOMANIP_HPP_
+#define _MORE_IOMANIP_HPP_ 
 
-#include <string-utils.hh>  // more
+#include <string-utils.hpp>  // more
 
 #include <iostream>
 #include <limits>
@@ -37,13 +37,13 @@ namespace more {
     // << spaces(n) 
     //
 
-    struct _Spaces { int _M_n; };
+    struct _Spaces { int m_n; };
 
     static inline _Spaces
     spaces(int __n)
     {
         _Spaces __x;
-        __x._M_n = __n;
+        __x.m_n = __n;
         return __x;
     }
 
@@ -51,7 +51,7 @@ namespace more {
     inline std::basic_ostream<charT,Traits> &
     operator<<(std::basic_ostream<charT,Traits> &__out, _Spaces __s)
     {
-        for(int i=0; i < __s._M_n; i++)
+        for(int i=0; i < __s.m_n; i++)
             __out.put(__out.widen(' '));
         return __out;
     }
@@ -64,9 +64,9 @@ namespace more {
     {
     public:
         basic_token(const std::basic_string<CharT,Traits,Alloc> &delim, bool esc = string_utils::escape_disabled)
-        : _M_delim(delim),
-          _M_value(),
-          _M_esc(esc)
+        : m_delim(delim),
+          m_value(),
+          m_esc(esc)
         {}
 
         ~basic_token()
@@ -76,30 +76,30 @@ namespace more {
         operator>>(std::basic_istream<CharT,Traits> &__in, basic_token &rhs)
         {
             std::basic_string<CharT,Traits,Alloc> & __str = rhs;
-            more::getline(__in, __str, rhs._M_delim, rhs._M_esc);
+            more::getline(__in, __str, rhs.m_delim, rhs.m_esc);
             return __in;
         }
 
         operator const std::basic_string<CharT,Traits,Alloc> &() const
         {
-            return _M_value;
+            return m_value;
         }
 
         operator std::basic_string<CharT,Traits,Alloc> &() 
         {
-            return _M_value;
+            return m_value;
         }
 
         const std::basic_string<CharT,Traits,Alloc> &
         str() const
         {
-            return _M_value;
+            return m_value;
         }
 
     protected:
-        const std::basic_string<CharT,Traits,Alloc> _M_delim;
-        std::basic_string<CharT,Traits,Alloc> _M_value;
-        bool _M_esc;
+        const std::basic_string<CharT,Traits,Alloc> m_delim;
+        std::basic_string<CharT,Traits,Alloc> m_value;
+        bool m_esc;
     };
 
     // >> string_token, wstring_token
@@ -136,7 +136,7 @@ namespace more {
         operator>>(std::basic_istream<CharT,Traits> &__in, basic_line &rhs)
         {
             std::basic_string<CharT,Traits,Alloc> & __str = rhs;
-            more::getline(__in,__str, rhs._M_delim, rhs._M_esc);
+            more::getline(__in,__str, rhs.m_delim, rhs.m_esc);
             return __in;
         }
     };
@@ -152,4 +152,4 @@ namespace more {
 
 } // namespace more
 
-#endif /* _IOMANIP_HH_ */
+#endif /* _MORE_IOMANIP_HPP_ */

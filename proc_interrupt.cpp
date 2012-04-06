@@ -17,8 +17,10 @@
  *
  */
 
-#include <proc_interrupt.h>
-#include <iomanip.hh>
+
+#include <iomanip.hpp>
+
+#include <proc_interrupt.hpp>
 
 namespace proc {
 

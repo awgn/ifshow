@@ -25,9 +25,8 @@
 #include <string>
 #include <list>
 
-#include <proc_files.h>
-
-#include <string-utils.hh>  // more
+#include <string-utils.hpp>  // more
+#include <proc_files.hpp>
 
 namespace proc 
 {

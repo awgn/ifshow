@@ -31,14 +31,14 @@
 
 #include <getopt.h>
 
-#include <colorful.hh>      // more
-#include <iomanip.hh>       // more
-#include <string-utils.hh>  // more
+#include <colorful.hpp>      // more
+#include <iomanip.hpp>       // more
+#include <string-utils.hpp>  // more
 
-#include <proc_net_wireless.h>
-#include <proc_interrupt.h>
-#include <proc_net_dev.h>
-#include <ifr.h>        
+#include <proc_net_wireless.hpp>
+#include <proc_interrupt.hpp>
+#include <proc_net_dev.hpp>
+#include <ifr.hpp>        
 
 extern "C" {
 #include <pci/pci.h>
@@ -47,8 +47,8 @@ extern "C" {
 extern char *__progname;
 static const char * version = "1.0";
 
-typedef more::colorful< TYPELIST(more::ecma::bold) > BOLD;
-typedef more::colorful< TYPELIST(more::ecma::reset) > RESET;
+typedef more::colorful< more::ecma::bold > BOLD;
+typedef more::colorful< more::ecma::reset > RESET;
 
 
 struct comp_length : std::binary_function<const std::string &, const std::string &, bool>
@@ -59,7 +59,7 @@ struct comp_length : std::binary_function<const std::string &, const std::string
 };
 
 
-void
+int
 show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = std::list<std::string>())
 {
     std::list<std::string> ifs = proc::get_if_list();
@@ -357,6 +357,8 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
     pci_cleanup(pacc);    
     std::cout << RESET();
+    
+    return 0;
 }
 
 
@@ -409,15 +411,10 @@ main(int argc, char *argv[])
 
     while( argc > 0 ) {
         ifs.push_back(std::string(argv[0]));
-
         argc--;
         argv++;
     }
 
-    // std::copy(ifs.begin(), ifs.end(), std::ostream_iterator<std::string>(std::cout, " "));
-
-    show_interfaces(all, verb, ifs);
-    
-    return 0;
+    return show_interfaces(all, verb, ifs);
 }
 

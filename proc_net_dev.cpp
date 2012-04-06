@@ -17,9 +17,11 @@
  *
  */
 
-#include <proc_net_dev.h>
-#include <iomanip.hh>
-#include <string-utils.hh>
+
+#include <iomanip.hpp>
+#include <string-utils.hpp>
+
+#include <proc_net_dev.hpp>
 
 namespace proc {
 

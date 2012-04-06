@@ -39,12 +39,12 @@
 #include <stdexcept>
 #include <cerrno>
 
-#include <string-utils.hh>  // more
-#include <iomanip.hh>       // more
+#include <string-utils.hpp>  // more
+#include <iomanip.hpp>       // more
 
-#include <proc_files.h>
+#include <proc_files.hpp>
+
 #include <macro.h>
-
 #include <mii.h>
 #include <iwlib.h>
 

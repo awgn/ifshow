@@ -17,8 +17,10 @@
  *
  */
 
-#include <proc_net_wireless.h>
-#include <iomanip.hh>
+
+#include <iomanip.hpp>
+
+#include <proc_net_wireless.hpp>
 
 namespace proc { 
 

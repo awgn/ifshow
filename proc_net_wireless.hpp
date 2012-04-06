@@ -17,22 +17,23 @@
  *
  */
 
-#ifndef _PROC_INTERRUPT_H_
-#define _PROC_INTERRUPT_H_ 
+#ifndef _PROC_NET_WIRELESS_H_
+#define _PROC_NET_WIRELESS_H_ 
 
-#include <iostream>
+#include <tr1/tuple>
 #include <fstream>
 #include <sstream>
-#include <vector>
+#include <string>
+#include <list>
 
-#include <lexical_cast.hh>  // more
-#include <string-utils.hh>  // more
-
-#include <proc_files.h>
+#include <string-utils.hpp>  // more
+#include <proc_files.hpp>
 
 namespace proc 
 {
-    extern std::vector<int> get_interrupt_counter(int irq);
+    extern std::tr1::tuple<double, double, double, double> 
+    get_wireless(const std::string &);
 }
 
-#endif /* _PROC_INTERRUPT_H_ */
+
+#endif /* _PROC_NET_WIRELESS_H_ */
