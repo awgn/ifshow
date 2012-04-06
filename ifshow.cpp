@@ -44,7 +44,7 @@ extern "C" {
 }
 
 extern char *__progname;
-static const char * version = "1.0";
+static const char * version = "1.1";
 
 typedef more::colorful< more::ecma::bold > BOLD;
 typedef more::colorful< more::ecma::reset > RESET;
@@ -110,12 +110,6 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             //
             if (n)
                 std::cout << std::endl;
-
-            // mii test
-            //
-            std::string mii_test = iif.mii();
-            if (mii_test.find("ok") != std::string::npos) 
-                std::cout << BOLD();
 
             std::unique_ptr<ethtool_cmd> ecmd;
 
@@ -192,9 +186,6 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             // display HWaddr
             //
             std::cout << "HWaddr " << iif.mac() << std::endl;
-
-            if ( mii_test.find("not supported") == std::string::npos || verbose)
-                std::cout << more::spaces(indent) << "MII:" << mii_test << std::endl;
 
             std::cout << RESET();
 

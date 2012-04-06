@@ -46,7 +46,6 @@
 #include <proc_files.hpp>
 
 #include <macro.h>
-#include <mii.h>
 #include <iwlib.h>
 
 namespace net { 
@@ -312,11 +311,6 @@ namespace net {
             return stats();
         }
 
-        std::string
-        mii() const
-        {
-            return do_one_xcvr(sock_(), m_name.c_str(),0);
-        }
 
         wireless_info 
         wifi_info() const
