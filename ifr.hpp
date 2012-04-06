@@ -55,11 +55,10 @@ namespace net {
     { 
     public:
         ifr(const std::string &name)
-        : _M_name(name),
-          _M_ifreq_io()
-          // _M_drvinfo()
+        : m_name(name)
+        , m_ifreq_io()
         {
-            strncpy(_M_ifreq_io.ifr_name, _M_name.c_str(), IFNAMSIZ);
+            strncpy(m_ifreq_io.ifr_name, m_name.c_str(), IFNAMSIZ);
         }
 
         ~ifr()
@@ -68,10 +67,10 @@ namespace net {
         short int
         flags() const 
         {
-            if (ioctl(ifr::_S_sock(), SIOCGIFFLAGS, &_M_ifreq_io) < 0)
+            if (ioctl(ifr::sock_(), SIOCGIFFLAGS, &m_ifreq_io) < 0)
                 throw std::runtime_error("SIOCGIFFLAGS");
 
-            return _M_ifreq_io.ifr_flags;
+            return m_ifreq_io.ifr_flags;
         }
 
         std::string
@@ -102,10 +101,10 @@ namespace net {
 
             uint32_t req = ETHTOOL_GDRVINFO;	/* netdev ethcmd */
 
-            _M_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(drvinfo.get());
-            strncpy(_M_ifreq_io.ifr_data, (char *) &req, sizeof(req));
+            m_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(drvinfo.get());
+            strncpy(m_ifreq_io.ifr_data, (char *) &req, sizeof(req));
 
-            if (ioctl(_S_sock(), SIOCETHTOOL, &_M_ifreq_io) == -1) {
+            if (ioctl(sock_(), SIOCETHTOOL, &m_ifreq_io) == -1) {
                 throw std::runtime_error("SIOCETHTOOL");
             } 
            
@@ -118,9 +117,9 @@ namespace net {
             std::unique_ptr<ethtool_cmd> ecmd(new ethtool_cmd);
 
             ecmd->cmd = ETHTOOL_GSET;
-            _M_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(ecmd.get());
+            m_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(ecmd.get());
 
-            if (ioctl(_S_sock(), SIOCETHTOOL, &_M_ifreq_io) == -1) {
+            if (ioctl(sock_(), SIOCETHTOOL, &m_ifreq_io) == -1) {
                 throw std::runtime_error("SIOCETHTOOL");
             } 
         
@@ -133,44 +132,41 @@ namespace net {
             struct ethtool_value edata;
             edata.cmd = ETHTOOL_GLINK;
 
-            _M_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(&edata);
-            if (ioctl(_S_sock(), SIOCETHTOOL, &_M_ifreq_io) == -1) {
+            m_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(&edata);
+            if (ioctl(sock_(), SIOCETHTOOL, &m_ifreq_io) == -1) {
                 throw std::runtime_error("SIOCETHTOOL");
             }
             
             return edata.data;    
         }
 
-
-        // get hwaddr
-        //
-
         std::string
         mac() const 
         {
-            if (ioctl(_S_sock(), SIOCGIFHWADDR, &_M_ifreq_io) == -1 ) {
+            if (ioctl(sock_(), SIOCGIFHWADDR, &m_ifreq_io) == -1) {
                 throw std::runtime_error("ioctl: SIOCGIFHWADDR");
             }
-            struct ether_addr *eth_addr = (struct ether_addr *) & _M_ifreq_io.ifr_addr.sa_data;
+            struct ether_addr *eth_addr = (struct ether_addr *) & m_ifreq_io.ifr_addr.sa_data;
             return  ether_ntoa(eth_addr);
         }
 
         int 
         mtu() const
         {
-            if (ioctl(_S_sock(), SIOCGIFMTU, &_M_ifreq_io) == -1 ) {
+            if (ioctl(sock_(), SIOCGIFMTU, &m_ifreq_io) == -1 ) {
                 throw std::runtime_error("ioctl: SIOCGIFMTU");
             }
-            return _M_ifreq_io.ifr_mtu;
+            return m_ifreq_io.ifr_mtu;
         }
+
 
         int 
         metric() const
         {
-            if (ioctl(_S_sock(), SIOCGIFMETRIC, &_M_ifreq_io) == -1 ) {
+            if (ioctl(sock_(), SIOCGIFMETRIC, &m_ifreq_io) == -1 ) {
                 throw std::runtime_error("ioctl: SIOCGIFMETRIC");
             }
-            return _M_ifreq_io.ifr_metric ? _M_ifreq_io.ifr_metric : 1;
+            return m_ifreq_io.ifr_metric ? m_ifreq_io.ifr_metric : 1;
         }
 
 
@@ -178,10 +174,10 @@ namespace net {
         std::string
         inet_addr() const
         {
-            if (ioctl(_S_sock(), SIOC, &_M_ifreq_io) != -1 ) {
-                struct sockaddr_in *p = (struct sockaddr_in *)&_M_ifreq_io.ifr_addr;
+            if (ioctl(sock_(), SIOC, &m_ifreq_io) != -1 ) {
+                struct sockaddr_in *p = (struct sockaddr_in *)&m_ifreq_io.ifr_addr;
 
-                if(_M_ifreq_io.ifr_addr.sa_family == AF_INET) {
+                if(m_ifreq_io.ifr_addr.sa_family == AF_INET) {
                     char dst[16];
                     return inet_ntop(AF_INET, reinterpret_cast<const void *>(&p->sin_addr), dst, sizeof(dst));
                 }
@@ -207,7 +203,7 @@ namespace net {
             {
                 std::ostringstream ss;
 
-                if ( strcmp(_M_name.c_str(),devname) )
+                if ( strcmp(m_name.c_str(),devname) )
                     continue;
 
                 sprintf(addr6, "%s:%s:%s:%s:%s:%s:%s:%s",
@@ -250,19 +246,19 @@ namespace net {
         struct ifmap 
         map() const
         {
-            if (ioctl(_S_sock(), SIOCGIFMAP, &_M_ifreq_io) == -1 ) {
+            if (ioctl(sock_(), SIOCGIFMAP, &m_ifreq_io) == -1 ) {
                 throw std::runtime_error("ioctl: SIOCGIFMAP");
             }
-            return _M_ifreq_io.ifr_ifru.ifru_map; 
+            return m_ifreq_io.ifr_ifru.ifru_map; 
         }
 
         int 
         txqueuelen() const
         {
-            if (ioctl(_S_sock(), SIOCGIFTXQLEN, &_M_ifreq_io) == -1 ) {
+            if (ioctl(sock_(), SIOCGIFTXQLEN, &m_ifreq_io) == -1 ) {
                 throw std::runtime_error("ioctl: SIOCSIFTXQLEN");
             }
-            return _M_ifreq_io.ifr_qlen; 
+            return m_ifreq_io.ifr_qlen; 
         }
 
         struct stats {
@@ -300,7 +296,7 @@ namespace net {
 
                 std::string name = more::trim_copy(static_cast<std::string>(if_name));
 
-                if ( name != _M_name)
+                if ( name != m_name)
                     continue;
 
                 int compressed, multicast;
@@ -309,19 +305,6 @@ namespace net {
                    >> compressed >> multicast; 
 
                 ss >> ret.tx_bytes >> ret.tx_packets >> ret.tx_errs >> ret.tx_drop >> ret.tx_fifo >> ret.tx_colls;
-                
-                // sscanf(ss.str().c_str(), "%*u %u %u %u %u %u %*u %*u %*u %u %u %u %u %u", 
-                //        &ret.rx_packets,
-                //        &ret.rx_errs,
-                //        &ret.rx_drop,
-                //        &ret.rx_fifo,
-                //        &ret.rx_frame,
-                //        &ret.tx_packets,
-                //        &ret.tx_errs,
-                //        &ret.tx_drop,
-                //        &ret.tx_fifo,
-                //        &ret.tx_colls);
-                
                 return ret;
             }
 
@@ -332,7 +315,7 @@ namespace net {
         std::string
         mii() const
         {
-            return do_one_xcvr(_S_sock(), _M_name.c_str(),0);
+            return do_one_xcvr(sock_(), m_name.c_str(),0);
         }
 
         wireless_info 
@@ -341,17 +324,17 @@ namespace net {
             wireless_info info;
             memset(&info, 0, sizeof(wireless_info));
 
-            if (iw_get_basic_config(_S_sock(), _M_name.c_str(), &info.b) < 0)
+            if (iw_get_basic_config(sock_(), m_name.c_str(), &info.b) < 0)
                 throw std::runtime_error("no wireless extension");
 
             struct iwreq wrq;
-            if (iw_get_ext(_S_sock(), _M_name.c_str(), SIOCGIWAP, &wrq) >= 0) {
+            if (iw_get_ext(sock_(), m_name.c_str(), SIOCGIWAP, &wrq) >= 0) {
                 info.has_ap_addr = 1;
                 memcpy(&(info.ap_addr), &(wrq.u.ap_addr), sizeof(sockaddr));
             }
 
             // get bit-rate
-            if (iw_get_ext(_S_sock(), _M_name.c_str(), SIOCGIWRATE, &wrq) >= 0) {
+            if (iw_get_ext(sock_(), m_name.c_str(), SIOCGIWRATE, &wrq) >= 0) {
                 info.has_bitrate = 1;
                 memcpy(&(info.bitrate), &(wrq.u.bitrate), sizeof(iwparam));
             }
@@ -362,7 +345,7 @@ namespace net {
     private:
 
         static int 
-        _S_sock()
+        sock_()
         {
             static int sock = socket(AF_INET, SOCK_DGRAM, 0);
             if (sock == -1)
@@ -370,11 +353,10 @@ namespace net {
             return sock;
         }
 
-        std::string _M_name;
+        std::string m_name;
 
-        mutable struct ifreq _M_ifreq_io;
+        mutable struct ifreq m_ifreq_io;
 
-        // ethtool_drvinfo _M_drvinfo;
     };
 
 } // namespace more
