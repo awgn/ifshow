@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef _IFR_HH_
-#define _IFR_HH_ 
+#ifndef _IFR_HPP_
+#define _IFR_HPP_ 
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -355,4 +355,4 @@ namespace net {
 
 } // namespace more
 
-#endif /* _IFR_HH_ */
+#endif /* _IFR_HPP_ */

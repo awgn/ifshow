@@ -59,23 +59,26 @@ struct comp_length : std::binary_function<const std::string &, const std::string
 
 
 int
-show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = std::list<std::string>())
+show_interfaces(bool all, bool verbose, const std::list<std::string> &if_list = std::list<std::string>())
 {
-    std::list<std::string> ifs = proc::get_if_list();
-    std::list<std::string>::const_iterator longest = std::max_element(ifs.begin(), ifs.end(), comp_length());
+    auto ifs = proc::get_if_list();
+
+    auto longest = std::max_element(ifs.begin(), ifs.end(), [](const std::string &lhs, const std::string &rhs) {
+                                        return lhs.length() < rhs.length();
+                                        }
+                                    );
 
     size_t indent = longest->length() + 2;
-
-    std::list<std::string>::const_iterator it = ifs.begin();
-    std::list<std::string>::const_iterator it_end = ifs.end();
 
     struct pci_access *pacc = pci_alloc();
 
     // initialize pci library...
 
+    char name_path[] = "/usr/share/misc/pci.ids";
+
     pci_init(pacc);
     pci_scan_bus(pacc);
-    pci_set_name_list_path(pacc, const_cast<char *>("/usr/share/misc/pci.ids"), 0);
+    pci_set_name_list_path(pacc, name_path, 0);
 
     // create a pci filter...
     struct pci_filter filter;
@@ -85,7 +88,8 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
     //
     char pci_namebuf[1024], pci_classbuf[128];
 
-    for(int n=0; it != it_end; ++it) {
+    size_t n = 0;
+    for(auto & name : proc::get_if_list()) {
 
         std::cout << RESET();
 
@@ -93,17 +97,18 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
         { 
             // build the interface by name
             //
-            net::ifr iif(*it);
+            net::ifr iif(name);
 
             // in case the list is given, skip the interface if not included
             //
-            if (!iflist.empty() &&
-                find(iflist.begin(), iflist.end(), *it) == iflist.end())
+            if (!if_list.empty() &&
+                find(if_list.begin(), if_list.end(), name) == if_list.end())
                 continue;
 
             // display the interface when it's UP or -a is passed at command line
             //
-            if (!all && (iif.flags() & IFF_UP) == 0 && find(iflist.begin(), iflist.end(), *it) == iflist.end())
+            if (!all && (iif.flags() & IFF_UP) == 0 && 
+                find(if_list.begin(), if_list.end(), name) == if_list.end())
                 continue;
 
             // leave an empty line
@@ -129,7 +134,7 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // display the interface name
             //
-            std::cout << std::left << std::setw(indent-1) << *it << ' ';    
+            std::cout << std::left << std::setw(indent-1) << name << ' ';    
             n++;
 
             // display Link-Speed (if supported)
@@ -186,7 +191,6 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             // display HWaddr
             //
             std::cout << "HWaddr " << iif.mac() << std::endl;
-
             std::cout << RESET();
 
             // display wireless config if avaiable
@@ -223,7 +227,7 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // display wireless info, if available
             //
-            std::tuple<double, double, double, double> wi = proc::get_wireless(*it);
+            std::tuple<double, double, double, double> wi = proc::get_wireless(name);
             if ( std::get<0>(wi) != 0.0 ||
                  std::get<1>(wi) != 0.0 ||
                  std::get<2>(wi) != 0.0 ||
@@ -340,7 +344,7 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
         catch(std::exception &e)
         {
             if (verbose)
-                std::cout << *it << ": " << e.what() << std::endl;
+                std::cout << name << ": " << e.what() << std::endl;
             continue;
         }
     }

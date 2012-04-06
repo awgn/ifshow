@@ -4,6 +4,13 @@ project(ifshow)
 
 include_directories(. more)
 
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build: Release or Debug" FORCE)
+endif()
+
+set (CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS} -std=c++0x -D_GLIBCXX_DEBUG -g -O0 -Wall -Wextra")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++0x -DNDEBUG -O3 -march=native -Wall -Wextra")
+
 add_executable(ifshow ifshow.cpp iwlib.c proc_net_dev.cpp proc_net_wireless.cpp proc_interrupt.cpp)
 
 target_link_libraries(ifshow -lpci)
