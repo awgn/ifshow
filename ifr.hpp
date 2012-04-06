@@ -38,6 +38,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <cerrno>
+#include <memory>
 
 #include <string-utils.hpp>  // more
 #include <iomanip.hpp>       // more
@@ -94,10 +95,10 @@ namespace net {
          * the function return an ethtool_drvinfo structure 
          */
 
-        std::tr1::shared_ptr<ethtool_drvinfo>
+        std::unique_ptr<ethtool_drvinfo>
         ethtool_info() const
         {
-            std::tr1::shared_ptr<ethtool_drvinfo> drvinfo(new ethtool_drvinfo);
+            std::unique_ptr<ethtool_drvinfo> drvinfo(new ethtool_drvinfo);
 
             uint32_t req = ETHTOOL_GDRVINFO;	/* netdev ethcmd */
 
@@ -111,10 +112,10 @@ namespace net {
             return drvinfo; 
         }
 
-        std::tr1::shared_ptr<ethtool_cmd> 
+        std::unique_ptr<ethtool_cmd> 
         ethtool_command() const
         {
-            std::tr1::shared_ptr<ethtool_cmd> ecmd(new ethtool_cmd);
+            std::unique_ptr<ethtool_cmd> ecmd(new ethtool_cmd);
 
             ecmd->cmd = ETHTOOL_GSET;
             _M_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(ecmd.get());

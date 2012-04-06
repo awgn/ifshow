@@ -24,7 +24,6 @@
 #include <list>
 #include <vector>
 
-#include <tr1/memory>
 #include <algorithm>
 #include <iterator>
 #include <iomanip>
@@ -118,7 +117,7 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             if (mii_test.find("ok") != std::string::npos) 
                 std::cout << BOLD();
 
-            std::tr1::shared_ptr<ethtool_cmd> ecmd;
+            std::unique_ptr<ethtool_cmd> ecmd;
 
             // ethtool test
             //
@@ -233,15 +232,15 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
 
             // display wireless info, if available
             //
-            std::tr1::tuple<double, double, double, double> wi = proc::get_wireless(*it);
-            if ( std::tr1::get<0>(wi) != 0.0 ||
-                 std::tr1::get<1>(wi) != 0.0 ||
-                 std::tr1::get<2>(wi) != 0.0 ||
-                 std::tr1::get<3>(wi) != 0.0 )
+            std::tuple<double, double, double, double> wi = proc::get_wireless(*it);
+            if ( std::get<0>(wi) != 0.0 ||
+                 std::get<1>(wi) != 0.0 ||
+                 std::get<2>(wi) != 0.0 ||
+                 std::get<3>(wi) != 0.0 )
             {
-                std::cout << more::spaces(indent) << "wifi_status:" << std::tr1::get<0>(wi) <<
-                            " link:" << std::tr1::get<1>(wi) << " level:" << std::tr1::get<2>(wi) << 
-                            " noise:" << std::tr1::get<3>(wi) << std::endl; 
+                std::cout << more::spaces(indent) << "wifi_status:" << std::get<0>(wi) <<
+                            " link:" << std::get<1>(wi) << " level:" << std::get<2>(wi) << 
+                            " noise:" << std::get<3>(wi) << std::endl; 
             }
 
             // display flags, mtu and metric
@@ -300,7 +299,7 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &iflist = s
             // ... display drvinfo if available
             //
             
-            std::tr1::shared_ptr<ethtool_drvinfo> info(iif.ethtool_info());
+            std::unique_ptr<ethtool_drvinfo> info(iif.ethtool_info());
             if (info) {
 
                 char bus_info[16];

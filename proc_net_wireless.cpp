@@ -24,7 +24,7 @@
 
 namespace proc { 
 
-    std::tr1::tuple<double, double, double, double>
+    std::tuple<double, double, double, double>
     get_wireless(const std::string &wlan)
     {
         std::ifstream proc_net_wireless(proc::NET_WIRELESS);
@@ -44,10 +44,10 @@ namespace proc {
             double status, link, level, noise;
             proc_net_wireless >> status >> link >> level >> noise;
 
-            return std::tr1::make_tuple(status,link,level,noise);
+            return std::make_tuple(status,link,level,noise);
         }
 
-        return std::tr1::make_tuple(0.0,0.0,0.0,0.0);
+        return std::make_tuple(0.0,0.0,0.0,0.0);
     }
 
 
@@ -57,12 +57,12 @@ namespace proc {
 int
 main(int argc, char *argv[])
 {
-    std::tr1::tuple<double, double, double, double> ret = proc::get_wireless("wlan0");
+    std::tuple<double, double, double, double> ret = proc::get_wireless("wlan0");
 
-    std::cout << std::tr1::get<0>(ret) << ' ' << 
-                 std::tr1::get<1>(ret) << ' ' <<
-                 std::tr1::get<2>(ret) << ' ' <<
-                 std::tr1::get<3>(ret) << std::endl;
+    std::cout << std::get<0>(ret) << ' ' << 
+                 std::get<1>(ret) << ' ' <<
+                 std::get<2>(ret) << ' ' <<
+                 std::get<3>(ret) << std::endl;
     return 0;
 }
 #endif

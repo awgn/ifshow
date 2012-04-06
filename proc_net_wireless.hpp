@@ -20,7 +20,7 @@
 #ifndef _PROC_NET_WIRELESS_H_
 #define _PROC_NET_WIRELESS_H_ 
 
-#include <tr1/tuple>
+#include <tuple>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -31,7 +31,7 @@
 
 namespace proc 
 {
-    extern std::tr1::tuple<double, double, double, double> 
+    extern std::tuple<double, double, double, double> 
     get_wireless(const std::string &);
 }
 
