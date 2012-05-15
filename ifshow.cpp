@@ -50,14 +50,6 @@ typedef more::colorful< more::ecma::bold > BOLD;
 typedef more::colorful< more::ecma::reset > RESET;
 
 
-struct comp_length : std::binary_function<const std::string &, const std::string &, bool>
-{
-    template <typename T>
-    bool operator()(const T &lhs, const T &rhs) const
-    { return lhs.length() < rhs.length(); }
-};
-
-
 template <typename CharT, typename Traits, typename Fun>
 void pretty_print(std::basic_ostream<CharT, Traits> &out, size_t sp, Fun fun)
 {
