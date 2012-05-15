@@ -54,8 +54,8 @@ namespace net {
     class ifr
     { 
     public:
-        ifr(const std::string &name)
-        : m_name(name)
+        ifr(std::string name)
+        : m_name(std::move(name))
         , m_ifreq_io()
         {
             strncpy(m_ifreq_io.ifr_name, m_name.c_str(), IFNAMSIZ);
@@ -338,7 +338,6 @@ namespace net {
         }
 
     private:
-
         static int 
         sock_()
         {

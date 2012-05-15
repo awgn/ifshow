@@ -75,7 +75,7 @@ void pretty_printLn(std::basic_ostream<CharT, Traits> &out, size_t sp, Fun fun)
 
 
 int
-show_interfaces(bool all, bool verbose, const std::list<std::string> &if_list = std::list<std::string>())
+show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std::string>())
 {
     auto ifs = proc::get_if_list();
 
@@ -375,14 +375,12 @@ static
 const char usage_str[] = "\
 Usage:%s [options]\n\
    -a, --all            display all interfaces\n\
-   -v, --verbose        increase verbosity\n\
-   -V, --version        display the version and exit\n\
+   -v, --version        display the version and exit\n\
    -h, --help           print this help\n";
 
 
 static const struct option long_options[] = {
-    {"verbose",  no_argument, NULL, 'v'},
-    {"version",  no_argument, NULL, 'V'},
+    {"version",  no_argument, NULL, 'v'},
     {"all",      no_argument, NULL, 'S'},
     {"help",     no_argument, NULL, 'h'},
     { NULL,      0          , NULL,  0 }};
@@ -392,7 +390,6 @@ int
 main(int argc, char *argv[])
 {
     bool all = false;
-    bool verb = false;
 
     int i;
     while ((i = getopt_long(argc, argv, "hVva", long_options, 0)) != EOF)
@@ -401,9 +398,6 @@ main(int argc, char *argv[])
             printf(usage_str, __progname);
             exit(0);
         case 'v':
-            verb = true;
-            break;
-        case 'V':
             fprintf(stderr, "%s %s\n", __progname ,version);
             exit(0);
         case 'a':
@@ -424,6 +418,6 @@ main(int argc, char *argv[])
         argv++;
     }
 
-    return show_interfaces(all, verb, ifs);
+    return show_interfaces(all, ifs);
 }
 
