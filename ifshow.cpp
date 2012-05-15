@@ -44,7 +44,8 @@ extern "C" {
 }
 
 extern char *__progname;
-static const char * version = "1.1";
+static const char * version = "1.2";
+
 
 typedef more::colorful< more::ecma::bold > BOLD;
 typedef more::colorful< more::ecma::reset > RESET;
@@ -174,17 +175,16 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &if_list = 
                     std::cout << "MII "; break;
                 case PORT_FIBRE:
                     std::cout << "FIBRE "; break;
-                // case PORT_DA:
-                //    std::cout << "Direct Attach Copper "; break;
-                //case PORT_NONE:
-                //   std::cout << "None "; break;
-                //case PORT_OTHER:
-                //    std::cout << "Other "; break;
+                case PORT_DA:
+                    std::cout << "Direct Attach Copper "; break;
+                case PORT_NONE:
+                    std::cout << "None "; break;
+                case PORT_OTHER:
+                    std::cout << "Other "; break;
                 default:
                     std::cout << "Unknown "; break;
                 }
             }
-
         });
 
         pretty_printLn(std::cout, 0, [&] {
@@ -199,9 +199,10 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &if_list = 
 
         // display wireless config if avaiable
         //
-        char buffer[128];
         
         pretty_printLn(std::cout, indent, [&] {
+            
+            char buffer[128];
             
             wireless_info winfo = iif.wifi_info();
             std::cout << winfo.b.name << " ESSID:" << winfo.b.essid << " Mode:" << 
@@ -294,26 +295,20 @@ show_interfaces(bool all, bool verbose, const std::list<std::string> &if_list = 
         });
             
 
-        net::ifr::stats s;
         pretty_printLn(std::cout, indent, [&] {
 
-            s = iif.get_stats();
+            net::ifr::stats s = iif.get_stats();
             // display stats
             //
             std::cout << "Rx bytes:" << s.rx_bytes << " packets:" << s.rx_packets << 
                          " errors:" << s.rx_errs << " dropped:" << s.rx_drop << 
-                         " overruns: " << s.rx_fifo << " frame:" << s.rx_frame;
-        });    
-                         
-        pretty_printLn(std::cout, indent, [&] {
-            std::cout << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets << 
+                         " overruns: " << s.rx_fifo << " frame:" << s.rx_frame << std::endl;
+        
+            std::cout << more::spaces(indent) << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets << 
                          " errors:" << s.tx_errs << " dropped:" << s.tx_drop << 
-                         " overruns: " << s.tx_fifo;
+                         " overruns: " << s.tx_fifo << std::endl;
             
-        });    
-
-        pretty_printLn(std::cout, indent, [&] {
-            std::cout << "colls:" << s.tx_colls << " txqueuelen:" << iif.txqueuelen();
+            std::cout << more::spaces(indent) << "colls:" << s.tx_colls << " txqueuelen:" << iif.txqueuelen();
         });
                      
 
