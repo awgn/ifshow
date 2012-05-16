@@ -206,7 +206,8 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
             
             wireless_info winfo = iif.wifi_info();
             std::cout << winfo.b.name << " ESSID:" << winfo.b.essid << " Mode:" << 
-                iw_operation_mode[winfo.b.mode] << " Frequency:" << winfo.b.freq; 
+                iw_operation_mode[winfo.b.mode] << " Frequency:" << winfo.b.freq << 
+                        std::endl << more::spaces(indent); 
         
             if (winfo.has_bitrate) {
                     iw_print_bitrate(buffer,sizeof(buffer), winfo.bitrate.value);
