@@ -108,11 +108,6 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
 
     for(auto & name : proc::get_if_list()) {
 
-        std::cout << RESET();
-
-        if (devnum++)
-            std::cout << std::endl;
-
         // build the interface by name
         //
         net::ifr iif(name);
@@ -123,6 +118,11 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
             find(if_list.begin(), if_list.end(), name) == if_list.end())
             continue;
 
+        std::cout << RESET();
+
+        if (devnum++)
+            std::cout << std::endl;
+        
         // display the interface when it's UP or -a is passed at command line
         //
         if (!all && (iif.flags() & IFF_UP) == 0 && 
