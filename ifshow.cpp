@@ -37,7 +37,8 @@
 #include <proc_net_wireless.hpp>
 #include <proc_interrupt.hpp>
 #include <proc_net_dev.hpp>
-#include <ifr.hpp>        
+#include <ifr.hpp>
+#include <net/if.h>
 
 extern "C" {
 #include <pci/pci.h>
@@ -55,7 +56,7 @@ template <typename CharT, typename Traits, typename Fun>
 void pretty_print(std::basic_ostream<CharT, Traits> &out, size_t sp, Fun fun)
 {
     out << more::spaces(sp);
-    try 
+    try
     {
         fun();
     }
@@ -122,10 +123,10 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
 
         if (devnum++)
             std::cout << std::endl;
-        
+
         // display the interface when it's UP or -a is passed at command line
         //
-        if (!all && (iif.flags() & IFF_UP) == 0 && 
+        if (!all && (iif.flags() & IFF_UP) == 0 &&
             find(if_list.begin(), if_list.end(), name) == if_list.end())
             continue;
 
@@ -133,8 +134,8 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
 
             // display the interface name
             //
-            std::cout << std::left << std::setw(indent-1) << name << ' ' << std::flush;    
-            
+            std::cout << std::left << std::setw(indent-1) << name << ' ' << std::flush;
+
             auto ecmd = iif.ethtool_command();
             if (iif.ethtool_link())
                 std::cout << BOLD();
@@ -144,14 +145,14 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
             if (ecmd) {
 
                 uint32_t speed = ethtool_cmd_speed(ecmd.get());
-                
+
                 std::cout << "Link:" << (iif.ethtool_link() ? "yes " : "no ");
 
                 if (speed != 0 && speed != (uint16_t)(-1) && speed != (uint32_t)(-1))
                     std::cout << "Speed:" << speed << "Mb/s ";
-               
+
                 // display half/full duplex...
-                std::cout << "Duplex:"; 
+                std::cout << "Duplex:";
                 switch(ecmd->duplex)
                 {
                 case DUPLEX_HALF:
@@ -163,7 +164,7 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
                 }
 
                 // display port...
-                std::cout << "Port:"; 
+                std::cout << "Port:";
                 switch (ecmd->port) {
                 case PORT_TP:
                     std::cout << "Twisted Pair "; break;
@@ -199,26 +200,26 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
 
         // display wireless config if avaiable
         //
-        
+
         pretty_printLn(std::cout, indent, [&] {
-            
+
             char buffer[128];
-            
+
             wireless_info winfo = iif.wifi_info();
-            std::cout << winfo.b.name << " ESSID:" << winfo.b.essid << " Mode:" << 
-                iw_operation_mode[winfo.b.mode] << " Frequency:" << winfo.b.freq << 
-                        std::endl << more::spaces(indent); 
-        
+            std::cout << winfo.b.name << " ESSID:" << winfo.b.essid << " Mode:" <<
+                iw_operation_mode[winfo.b.mode] << " Frequency:" << winfo.b.freq <<
+                        std::endl << more::spaces(indent);
+
             if (winfo.has_bitrate) {
                     iw_print_bitrate(buffer,sizeof(buffer), winfo.bitrate.value);
                     std::cout << "Bit-Rate:" << buffer << ' ';
             }
 
             if (winfo.has_ap_addr) {
-                    std::cout << "Access Point: " << iw_sawap_ntop(&winfo.ap_addr, buffer);
+                    std::cout << "Access Point:" << iw_sawap_ntop(&winfo.ap_addr, buffer);
             }
-                
-        });    
+
+        });
 
         // display wireless info, if available
         //
@@ -232,30 +233,30 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
             pretty_printLn(std::cout, indent, [&] {
 
                 std::cout << "wifi_status:" << std::get<0>(wi) <<
-                            " link:" << std::get<1>(wi) << " level:" << std::get<2>(wi) << 
-                            " noise:" << std::get<3>(wi); 
+                            " link:" << std::get<1>(wi) << " level:" << std::get<2>(wi) <<
+                            " noise:" << std::get<3>(wi);
             });
         }
 
         // display flags, mtu and metric
         //
         pretty_printLn(std::cout, indent, [&] {
-        
-            std::cout << iif.flags_str() << "MTU:" << iif.mtu() << " Metric:" << iif.metric(); 
+
+            std::cout << iif.flags_str() << "MTU:" << iif.mtu() << " Metric:" << iif.metric();
 
         });
 
-        
+
         // display inet addr if set
         //
         std::string inet_addr = iif.inet_addr<SIOCGIFADDR>();
         if ( inet_addr.size() ) {
 
             pretty_printLn(std::cout, indent, [&] {
-        
-                std::cout << "inet addr:" << inet_addr  
-                    << " Bcast:" << iif.inet_addr<SIOCGIFBRDADDR>() 
-                    << " Mask:" << iif.inet_addr<SIOCGIFNETMASK>(); 
+
+                std::cout << "inet addr:" << inet_addr
+                    << " Bcast:" << iif.inet_addr<SIOCGIFBRDADDR>()
+                    << " Mask:" << iif.inet_addr<SIOCGIFNETMASK>();
 
             });
         }
@@ -266,18 +267,21 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
         if (inet6_addr.size()) {
 
             pretty_printLn(std::cout, indent, [&] {
-            
+
                 std::cout << inet6_addr;
-       
+
             });
         }
-       
+
         pretty_printLn(std::cout, indent, [&] {
 
             // display map info
             //
             ifmap m = iif.map();
-            std::cout << std::hex <<"base_addr:0x" << m.base_addr;
+
+            std::cout << "if_index:" << if_nametoindex(name.c_str())
+                      << std::hex << " base_addr:0x" << m.base_addr;
+
             if (m.mem_start)
                 std::cout << " memory:0x" << m.mem_start << "-0x" << m.mem_end;
 
@@ -291,40 +295,40 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
                 std::cout << " cpu" << n++ << "=" << ci;
             }
 
-            std::cout << " dma:" << static_cast<int>(m.dma) 
+            std::cout << " dma:" << static_cast<int>(m.dma)
                       << " port:"<< static_cast<int>(m.port) << std::dec;
         });
-            
+
 
         pretty_printLn(std::cout, indent, [&] {
 
             net::ifr::stats s = iif.get_stats();
             // display stats
             //
-            std::cout << "Rx bytes:" << s.rx_bytes << " packets:" << s.rx_packets << 
-                         " errors:" << s.rx_errs << " dropped:" << s.rx_drop << 
-                         " overruns: " << s.rx_fifo << " frame:" << s.rx_frame << std::endl;
-        
-            std::cout << more::spaces(indent) << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets << 
-                         " errors:" << s.tx_errs << " dropped:" << s.tx_drop << 
-                         " overruns: " << s.tx_fifo << std::endl;
-            
+            std::cout << "Rx bytes:" << s.rx_bytes << " packets:" << s.rx_packets <<
+                         " errors:" << s.rx_errs << " dropped:" << s.rx_drop <<
+                         " overruns:" << s.rx_fifo << " frame:" << s.rx_frame << std::endl;
+
+            std::cout << more::spaces(indent) << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets <<
+                         " errors:" << s.tx_errs << " dropped:" << s.tx_drop <<
+                         " overruns:" << s.tx_fifo << std::endl;
+
             std::cout << more::spaces(indent) << "colls:" << s.tx_colls << " txqueuelen:" << iif.txqueuelen();
         });
-                     
+
 
         // ... display drvinfo if available
         //
-        
+
         pretty_printLn(std::cout, indent, [&] {
-        
+
             auto info = iif.ethtool_info();
             if (info) {
 
                 char bus_info[16];
                 strncpy(bus_info, info->bus_info, sizeof(bus_info)-1);
 
-                // set filter (and display additional pci info, if available)... 
+                // set filter (and display additional pci info, if available)...
                 //
                 if (!pci_filter_parse_slot(&filter, bus_info) )
                 {
@@ -335,29 +339,30 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
                         if ( pci_filter_match(&filter, dev) )
                             break;
                     }
-                    
+
                     if (dev) { // got it!!!
 
                         char *pci_name, *pci_class;
-                        pci_class = pci_lookup_name(pacc, pci_classbuf, sizeof(pci_classbuf), 
+                        pci_class = pci_lookup_name(pacc, pci_classbuf, sizeof(pci_classbuf),
                                                     PCI_LOOKUP_CLASS, dev->device_class);
-                        pci_name = pci_lookup_name(pacc, pci_namebuf, sizeof(pci_namebuf), 
+                        pci_name = pci_lookup_name(pacc, pci_namebuf, sizeof(pci_namebuf),
                                                    PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id);
 
-                        std::cout << std::hex 
-                        << pci_class << ": " << pci_name << std::dec << std::endl
-                        << more::spaces(indent)  << "vendor_id: " << dev->vendor_id 
-                        << " device_id: " << dev->device_id << " device_class: " << dev->device_class << std::endl; 
+                        std::cout << std::hex
+                        << pci_class << ":" << pci_name << std::dec << std::endl
+                        << more::spaces(indent)  << "vendor_id:" << dev->vendor_id
+                        << " device_id:" << dev->device_id << " device_class:" << dev->device_class
+                        << std::endl;
                     }
                 }
 
                 pretty_print(std::cout, indent, [&] {
                     // display ethertool_drivinfo...
                     //
-                    std::cout << "ether_driver:" << info->driver << " version:" << info->version;  
+                    std::cout << "ether_driver:" << info->driver << " version:" << info->version;
                     if (strlen(info->fw_version))
-                        std::cout << " firmware:" << info->fw_version; 
-                    if (strlen(info->bus_info)) 
+                        std::cout << " firmware:" << info->fw_version;
+                    if (strlen(info->bus_info))
                     std::cout << " bus:" << info->bus_info;
                 });
             }
@@ -365,14 +370,14 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
         });
 
     }
-    pci_cleanup(pacc);    
+    pci_cleanup(pacc);
     std::cout << RESET();
-    
+
     return 0;
 }
 
 
-static 
+static
 const char usage_str[] = "\
 Usage:%s [options]\n\
    -a, --all            display all interfaces\n\
@@ -405,7 +410,7 @@ main(int argc, char *argv[])
             all=true;
             break;
         case '?':
-            throw std::runtime_error("unknown option"); 
+            throw std::runtime_error("unknown option");
         }
 
     argc -= optind;
