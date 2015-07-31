@@ -34,9 +34,10 @@
 #include <iomanip.hpp>       // more
 #include <string-utils.hpp>  // more
 
-#include <proc_net_wireless.hpp>
-#include <proc_interrupt.hpp>
-#include <proc_net_dev.hpp>
+#include <proc/net_wireless.hpp>
+#include <proc/interrupt.hpp>
+#include <proc/net_dev.hpp>
+
 #include <ifr.hpp>
 #include <net/if.h>
 
@@ -45,7 +46,18 @@ extern "C" {
 }
 
 extern char *__progname;
-static const char * version = "1.2";
+static const char * version = "1.3";
+
+using namespace ifshow;
+
+
+struct options
+{
+    std::vector<std::string>    if_list;
+    std::vector<std::string>    driver;
+    bool                        verbose;
+    bool                        all;
+};
 
 
 typedef more::colorful< more::ecma::bold > BOLD;
@@ -70,13 +82,12 @@ void pretty_print(std::basic_ostream<CharT, Traits> &out, size_t sp, Fun fun)
 template <typename CharT, typename Traits, typename Fun>
 void pretty_printLn(std::basic_ostream<CharT, Traits> &out, size_t sp, Fun fun)
 {
-    pretty_print(out,sp,fun);
-    out << std::endl;
+    pretty_print(out,sp,fun); out << std::endl;
 }
 
 
 int
-show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std::string>())
+show_interfaces(const options &opts)
 {
     auto ifs = proc::get_if_list();
 
@@ -107,272 +118,299 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
 
     int devnum = 0;
 
-    for(auto & name : proc::get_if_list()) {
-
-        // build the interface by name
-        //
-        net::ifr iif(name);
-
-        // in case the list is given, skip the interface if not included
-        //
-        if (!if_list.empty() &&
-            find(if_list.begin(), if_list.end(), name) == if_list.end())
-            continue;
-
-        std::cout << RESET();
-
-        if (devnum++)
-            std::cout << std::endl;
-
-        // display the interface when it's UP or -a is passed at command line
-        //
-        if (!all && (iif.flags() & IFF_UP) == 0 &&
-            find(if_list.begin(), if_list.end(), name) == if_list.end())
-            continue;
-
-        pretty_print(std::cout, 0, [&] {
-
-            // display the interface name
+    for(auto & name : proc::get_if_list())
+    {
+        try
+        {
+            // build the interface by name
             //
-            std::cout << std::left << std::setw(indent-1) << name << ' ' << std::flush;
+            ifshow::ifr iif(name);
 
-            auto ecmd = iif.ethtool_command();
-            if (iif.ethtool_link())
+            // in case the list is given, skip the interface if not included
+            //
+            if (!opts.if_list.empty() &&
+                find(opts.if_list.begin(), opts.if_list.end(), name) == opts.if_list.end())
+                continue;
+
+            std::cout << RESET();
+
+            // display the interface when it's UP or -a is passed at command line
+            //
+            if (!opts.all && (iif.flags() & IFF_UP) == 0 && find(opts.if_list.begin(), opts.if_list.end(), name) == opts.if_list.end())
+                continue;
+
+            // get ether info...
+            //
+            //
+
+            std::unique_ptr<ethtool_drvinfo> info;
+            try
+            {
+                info = iif.ethtool_info();
+            }
+            catch(...)
+            {
+            }
+
+            // driver filter...
+            //
+
+            if (!opts.driver.empty())
+            {
+                if (!info || std::all_of(std::begin(opts.driver), std::end(opts.driver), [&](const std::string &drv) -> bool
+                                         {
+                                            return strstr(info->driver, drv.c_str()) == nullptr;
+                                         }))
+                    continue;
+            }
+
+            if (devnum++)
+                std::cout << std::endl;
+
+            pretty_print(std::cout, 0, [&] {
+
+                // display the interface name
+                //
+                std::cout << std::left << std::setw(indent-1) << name << ' ' << std::flush;
+
+                auto ecmd = iif.ethtool_command();
+                if (iif.ethtool_link())
                 std::cout << BOLD();
 
-            // display Link-Speed (if supported)
-            //
-            if (ecmd) {
-
-                uint32_t speed = ethtool_cmd_speed(ecmd.get());
-
-                std::cout << "Link:" << (iif.ethtool_link() ? "yes " : "no ");
-
-                if (speed != 0 && speed != (uint16_t)(-1) && speed != (uint32_t)(-1))
-                    std::cout << "Speed:" << speed << "Mb/s ";
-
-                // display half/full duplex...
-                std::cout << "Duplex:";
-                switch(ecmd->duplex)
+                // display Link-Speed (if supported)
+                //
+                if (ecmd)
                 {
-                case DUPLEX_HALF:
-                    std::cout << "Half "; break;
-                case DUPLEX_FULL:
-                    std::cout << "Full "; break;
-                default:
-                    std::cout << "Unknown "; break;
+                    uint32_t speed = ethtool_cmd_speed(ecmd.get());
+
+                    std::cout << "Link:" << (iif.ethtool_link() ? "yes " : "no ");
+
+                    if (speed != 0 && speed != (uint16_t)(-1) && speed != (uint32_t)(-1))
+                        std::cout << "Speed:" << speed << "Mb/s ";
+
+                    // display half/full duplex...
+                    std::cout << "Duplex:";
+                    switch(ecmd->duplex)
+                    {
+                    case DUPLEX_HALF:
+                        std::cout << "Half "; break;
+                    case DUPLEX_FULL:
+                        std::cout << "Full "; break;
+                    default:
+                        std::cout << "Unknown "; break;
+                    }
+
+                    // display port...
+                    std::cout << "Port:";
+                    switch (ecmd->port) {
+                    case PORT_TP:
+                        std::cout << "Twisted Pair "; break;
+                    case PORT_AUI:
+                        std::cout << "AUI "; break;
+                    case PORT_BNC:
+                        std::cout << "BNC "; break;
+                    case PORT_MII:
+                        std::cout << "MII "; break;
+                    case PORT_FIBRE:
+                        std::cout << "FIBRE "; break;
+                    case PORT_DA:
+                        std::cout << "Direct Attach Copper "; break;
+                    case PORT_NONE:
+                        std::cout << "None "; break;
+                    case PORT_OTHER:
+                        std::cout << "Other "; break;
+                    default:
+                        std::cout << "Unknown "; break;
+                    }
                 }
+            });
 
-                // display port...
-                std::cout << "Port:";
-                switch (ecmd->port) {
-                case PORT_TP:
-                    std::cout << "Twisted Pair "; break;
-                case PORT_AUI:
-                    std::cout << "AUI "; break;
-                case PORT_BNC:
-                    std::cout << "BNC "; break;
-                case PORT_MII:
-                    std::cout << "MII "; break;
-                case PORT_FIBRE:
-                    std::cout << "FIBRE "; break;
-                case PORT_DA:
-                    std::cout << "Direct Attach Copper "; break;
-                case PORT_NONE:
-                    std::cout << "None "; break;
-                case PORT_OTHER:
-                    std::cout << "Other "; break;
-                default:
-                    std::cout << "Unknown "; break;
-                }
-            }
-        });
+            pretty_printLn(std::cout, 0, [&]
+            {
+                // display HWaddr
+                //
+                std::cout << "HWaddr " << iif.mac();
+            });
 
-        pretty_printLn(std::cout, 0, [&] {
+            std::cout << RESET();
 
-            // display HWaddr
+            // display wireless config if avaiable
             //
-            std::cout << "HWaddr " << iif.mac();
 
-        });
+            pretty_printLn(std::cout, indent, [&]
+            {
+                char buffer[128];
 
-        std::cout << RESET();
+                wireless_info winfo = iif.wifi_info();
 
-        // display wireless config if avaiable
-        //
+                std::cout << winfo.b.name << " ESSID:" << winfo.b.essid << " Mode:" <<
+                             iw_operation_mode[winfo.b.mode] << " Frequency:" << winfo.b.freq << std::endl << more::spaces(indent);
 
-        pretty_printLn(std::cout, indent, [&] {
-
-            char buffer[128];
-
-            wireless_info winfo = iif.wifi_info();
-            std::cout << winfo.b.name << " ESSID:" << winfo.b.essid << " Mode:" <<
-                iw_operation_mode[winfo.b.mode] << " Frequency:" << winfo.b.freq <<
-                        std::endl << more::spaces(indent);
-
-            if (winfo.has_bitrate) {
+                if (winfo.has_bitrate)
+                {
                     iw_print_bitrate(buffer,sizeof(buffer), winfo.bitrate.value);
                     std::cout << "Bit-Rate:" << buffer << ' ';
-            }
-
-            if (winfo.has_ap_addr) {
-                    std::cout << "Access Point:" << iw_sawap_ntop(&winfo.ap_addr, buffer);
-            }
-
-        });
-
-        // display wireless info, if available
-        //
-        auto wi = proc::get_wireless(name);
-        if ( std::get<0>(wi) != 0.0 ||
-             std::get<1>(wi) != 0.0 ||
-             std::get<2>(wi) != 0.0 ||
-             std::get<3>(wi) != 0.0 )
-        {
-
-            pretty_printLn(std::cout, indent, [&] {
-
-                std::cout << "wifi_status:" << std::get<0>(wi) <<
-                            " link:" << std::get<1>(wi) << " level:" << std::get<2>(wi) <<
-                            " noise:" << std::get<3>(wi);
-            });
-        }
-
-        // display flags, mtu and metric
-        //
-        pretty_printLn(std::cout, indent, [&] {
-
-            std::cout << iif.flags_str() << "MTU:" << iif.mtu() << " Metric:" << iif.metric();
-
-        });
-
-
-        // display inet addr if set
-        //
-        std::string inet_addr = iif.inet_addr<SIOCGIFADDR>();
-        if ( inet_addr.size() ) {
-
-            pretty_printLn(std::cout, indent, [&] {
-
-                std::cout << "inet addr:" << inet_addr
-                    << " Bcast:" << iif.inet_addr<SIOCGIFBRDADDR>()
-                    << " Mask:" << iif.inet_addr<SIOCGIFNETMASK>();
-
-            });
-        }
-
-        // display inet6 addr if set
-        //
-        std::string inet6_addr = iif.inet6_addr();
-        if (inet6_addr.size()) {
-
-            pretty_printLn(std::cout, indent, [&] {
-
-                std::cout << inet6_addr;
-
-            });
-        }
-
-        pretty_printLn(std::cout, indent, [&] {
-
-            // display map info
-            //
-            ifmap m = iif.map();
-
-            std::cout << "if_index:" << if_nametoindex(name.c_str())
-                      << std::hex << " base_addr:0x" << m.base_addr;
-
-            if (m.mem_start)
-                std::cout << " memory:0x" << m.mem_start << "-0x" << m.mem_end;
-
-            std::cout << std::dec << " irq:" << static_cast<int>(m.irq);
-
-            // display irq events per cpu
-            //
-            auto cpuint = proc::get_interrupt_counter(static_cast<int>(m.irq));
-            int n = 0;
-            for(auto ci : cpuint) {
-                std::cout << " cpu" << n++ << "=" << ci;
-            }
-
-            std::cout << " dma:" << static_cast<int>(m.dma)
-                      << " port:"<< static_cast<int>(m.port) << std::dec;
-        });
-
-
-        pretty_printLn(std::cout, indent, [&] {
-
-            net::ifr::stats s = iif.get_stats();
-            // display stats
-            //
-            std::cout << "Rx bytes:" << s.rx_bytes << " packets:" << s.rx_packets <<
-                         " errors:" << s.rx_errs << " dropped:" << s.rx_drop <<
-                         " overruns:" << s.rx_fifo << " frame:" << s.rx_frame << std::endl;
-
-            std::cout << more::spaces(indent) << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets <<
-                         " errors:" << s.tx_errs << " dropped:" << s.tx_drop <<
-                         " overruns:" << s.tx_fifo << std::endl;
-
-            std::cout << more::spaces(indent) << "colls:" << s.tx_colls << " txqueuelen:" << iif.txqueuelen();
-        });
-
-
-        // ... display drvinfo if available
-        //
-
-        pretty_printLn(std::cout, indent, [&] {
-
-            auto info = iif.ethtool_info();
-            if (info) {
-
-                char bus_info[16];
-                strncpy(bus_info, info->bus_info, sizeof(bus_info)-1);
-
-                // set filter (and display additional pci info, if available)...
-                //
-                if (!pci_filter_parse_slot(&filter, bus_info) )
-                {
-                    struct pci_dev *dev = pacc->devices;
-                    for(;dev; dev=dev->next)
-                    {
-                        pci_fill_info(dev, PCI_FILL_IDENT | PCI_FILL_BASES | PCI_FILL_CLASS); /* Fill in header info we need */
-                        if ( pci_filter_match(&filter, dev) )
-                            break;
-                    }
-
-                    if (dev) { // got it!!!
-
-                        char *pci_name, *pci_class;
-                        pci_class = pci_lookup_name(pacc, pci_classbuf, sizeof(pci_classbuf),
-                                                    PCI_LOOKUP_CLASS, dev->device_class);
-                        pci_name = pci_lookup_name(pacc, pci_namebuf, sizeof(pci_namebuf),
-                                                   PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id);
-
-                        std::cout << std::hex
-                        << pci_class << ":" << pci_name << std::dec << std::endl
-                        << more::spaces(indent)  << "vendor_id:" << dev->vendor_id
-                        << " device_id:" << dev->device_id << " device_class:" << dev->device_class
-                        << std::endl;
-                    }
                 }
 
-                pretty_print(std::cout, indent, [&] {
+                if (winfo.has_ap_addr)
+                {
+                    std::cout << "Access Point:" << iw_sawap_ntop(&winfo.ap_addr, buffer);
+                }
+
+            });
+
+            // display wireless info, if available
+            //
+            auto wi = proc::get_wireless(name);
+            if ( std::get<0>(wi) != 0.0 ||
+                 std::get<1>(wi) != 0.0 ||
+                 std::get<2>(wi) != 0.0 ||
+                 std::get<3>(wi) != 0.0 )
+            {
+
+                pretty_printLn(std::cout, indent, [&]
+                {
+                    std::cout << "wifi_status:" << std::get<0>(wi) <<
+                               " link:" << std::get<1>(wi) << " level:" << std::get<2>(wi) <<
+                               " noise:" << std::get<3>(wi);
+                });
+            }
+
+            // display flags, mtu and metric
+            //
+            pretty_printLn(std::cout, indent, [&]
+            {
+                std::cout << iif.flags_str() << "MTU:" << iif.mtu() << " Metric:" << iif.metric();
+            });
+
+            // display inet addr if set
+            //
+            std::string inet_addr = iif.inet_addr<SIOCGIFADDR>();
+            if ( inet_addr.size() )
+            {
+                pretty_printLn(std::cout, indent, [&]
+                {
+                    std::cout << "inet addr:" << inet_addr
+                               << " Bcast:" << iif.inet_addr<SIOCGIFBRDADDR>()
+                               << " Mask:" << iif.inet_addr<SIOCGIFNETMASK>();
+
+                });
+            }
+
+            // display inet6 addr if set
+            //
+            std::string inet6_addr = iif.inet6_addr();
+            if (inet6_addr.size())
+            {
+                pretty_printLn(std::cout, indent, [&] { std::cout << inet6_addr; });
+            }
+
+            if (opts.verbose)
+            {
+                pretty_printLn(std::cout, indent, [&]
+                {
+                    // display map info
+                    //
+                    ifmap m = iif.map();
+
+                    std::cout << "if_index:" << if_nametoindex(name.c_str())
+                               << std::hex << " base_addr:0x" << m.base_addr;
+
+                    if (m.mem_start)
+                        std::cout << " memory:0x" << m.mem_start << "-0x" << m.mem_end;
+
+                    std::cout << std::dec << " irq:" << static_cast<int>(m.irq);
+
+                    // display irq events per cpu
+                    //
+                    auto cpuint = proc::get_interrupt_counter(static_cast<int>(m.irq));
+                    int n = 0;
+                    for(auto ci : cpuint) {
+                               std::cout << " cpu" << n++ << "=" << ci;
+                    }
+
+                    std::cout << " dma:" << static_cast<int>(m.dma)
+                    << " port:"<< static_cast<int>(m.port) << std::dec;
+                });
+
+                pretty_printLn(std::cout, indent, [&]
+                {
+                    ifshow::ifr::stats s = iif.get_stats();
+                    // display stats
+                    //
+                    std::cout << "Rx bytes:" << s.rx_bytes << " packets:" << s.rx_packets <<
+                                 " errors:" << s.rx_errs << " dropped:" << s.rx_drop <<
+                                 " overruns:" << s.rx_fifo << " frame:" << s.rx_frame << std::endl;
+
+                    std::cout << more::spaces(indent) << "Tx bytes:" << s.tx_bytes << " packets:" << s.tx_packets <<
+                               " errors:" << s.tx_errs << " dropped:" << s.tx_drop <<
+                               " overruns:" << s.tx_fifo << std::endl;
+
+                    std::cout << more::spaces(indent) << "colls:" << s.tx_colls << " txqueuelen:" << iif.txqueuelen();
+                });
+
+                // ... display drvinfo if available
+                //
+
+                if (info)
+                {
+                    pretty_printLn(std::cout, indent, [&]
+                    {
+                        char bus_info[16];
+                        strncpy(bus_info, info->bus_info, sizeof(bus_info)-1);
+
+                        // set filter (and display additional pci info, if available)...
+                        //
+                        if (!pci_filter_parse_slot(&filter, bus_info))
+                        {
+                            struct pci_dev *dev = pacc->devices;
+                            for(;dev; dev=dev->next)
+                            {
+                                pci_fill_info(dev, PCI_FILL_IDENT | PCI_FILL_BASES | PCI_FILL_CLASS); /* Fill in header info we need */
+                                if ( pci_filter_match(&filter, dev) )
+                                   break;
+                            }
+
+                            if (dev) { // got it!!!
+
+                                   char *pci_name, *pci_class;
+                                   pci_class = pci_lookup_name(pacc, pci_classbuf, sizeof(pci_classbuf),
+                                                               PCI_LOOKUP_CLASS, dev->device_class);
+                                   pci_name = pci_lookup_name(pacc, pci_namebuf, sizeof(pci_namebuf),
+                                                              PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id);
+
+                                   std::cout << std::hex
+                                   << pci_class << ":" << pci_name << std::dec << std::endl
+                                   << more::spaces(indent)  << "vendor_id:" << dev->vendor_id
+                                   << " device_id:" << dev->device_id << " device_class:" << dev->device_class;
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (info)
+            {
+                pretty_printLn(std::cout, indent, [&]
+                {
                     // display ethertool_drivinfo...
                     //
                     std::cout << "ether_driver:" << info->driver << " version:" << info->version;
                     if (strlen(info->fw_version))
                         std::cout << " firmware:" << info->fw_version;
                     if (strlen(info->bus_info))
-                    std::cout << " bus:" << info->bus_info;
+                        std::cout << " bus:" << info->bus_info;
                 });
             }
+        }
+        catch(...)
+        {
 
-        });
-
+        }
     }
+
     pci_cleanup(pacc);
     std::cout << RESET();
-
     return 0;
 }
 
@@ -380,14 +418,18 @@ show_interfaces(bool all, const std::list<std::string> &if_list = std::list<std:
 static
 const char usage_str[] = "\
 Usage:%s [options]\n\
-   -a, --all            display all interfaces\n\
-   -v, --version        display the version and exit\n\
-   -h, --help           print this help\n";
+  -a, --all            display all interfaces\n\
+  -d, --driver NAME    filter by driver\n\
+  -v, --verbose        \n\
+  -V, --version        display the version and exit\n\
+  -h, --help           print this help\n";
 
 
 static const struct option long_options[] = {
-    {"version",  no_argument, NULL, 'v'},
-    {"all",      no_argument, NULL, 'S'},
+    {"driver",   required_argument, NULL, 'd'},
+    {"verbose",  no_argument, NULL, 'v'},
+    {"version",  no_argument, NULL, 'V'},
+    {"all",      no_argument, NULL, 'a'},
     {"help",     no_argument, NULL, 'h'},
     { NULL,      0          , NULL,  0 }};
 
@@ -395,19 +437,25 @@ static const struct option long_options[] = {
 int
 main(int argc, char *argv[])
 {
-    bool all = false;
+    options opts = { {} , {} , false, false };
 
     int i;
-    while ((i = getopt_long(argc, argv, "hVva", long_options, 0)) != EOF)
+    while ((i = getopt_long(argc, argv, "hVvad:", long_options, 0)) != EOF)
         switch (i) {
         case 'h':
             printf(usage_str, __progname);
             exit(0);
-        case 'v':
+        case 'V':
             fprintf(stderr, "%s %s\n", __progname ,version);
             exit(0);
         case 'a':
-            all=true;
+            opts.all=true;
+            break;
+        case 'v':
+            opts.verbose=true;
+            break;
+        case 'd':
+            opts.driver.push_back(optarg);
             break;
         case '?':
             throw std::runtime_error("unknown option");
@@ -416,14 +464,12 @@ main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    std::list<std::string> ifs;
-
     while( argc > 0 ) {
-        ifs.push_back(std::string(argv[0]));
+        opts.if_list.push_back(std::string(argv[0]));
         argc--;
         argv++;
     }
 
-    return show_interfaces(all, ifs);
+    return show_interfaces(opts);
 }
 

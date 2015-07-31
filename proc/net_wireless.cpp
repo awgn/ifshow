@@ -17,18 +17,16 @@
  *
  */
 
-
 #include <iomanip.hpp>
+#include <proc/net_wireless.hpp>
 
-#include <proc_net_wireless.hpp>
-
-namespace proc { 
+namespace ifshow { namespace proc {
 
     std::tuple<double, double, double, double>
     get_wireless(const std::string &wlan)
     {
         std::ifstream proc_net_wireless(proc::NET_WIRELESS);
-        
+
         /* skip 2 lines */
         proc_net_wireless >> more::ignore_line >> more::ignore_line;
 
@@ -38,7 +36,7 @@ namespace proc {
             std::string name = more::trim_copy(if_name.str());
             if (name != wlan) {
                 proc_net_wireless >> more::ignore_line;
-               continue; 
+               continue;
             }
 
             double status, link, level, noise;
@@ -50,19 +48,6 @@ namespace proc {
         return std::make_tuple(0.0,0.0,0.0,0.0);
     }
 
-
 } // namespace proc
+} // namespace ifshow
 
-#ifdef TEST_PROC
-int
-main(int argc, char *argv[])
-{
-    std::tuple<double, double, double, double> ret = proc::get_wireless("wlan0");
-
-    std::cout << std::get<0>(ret) << ' ' << 
-                 std::get<1>(ret) << ' ' <<
-                 std::get<2>(ret) << ' ' <<
-                 std::get<3>(ret) << std::endl;
-    return 0;
-}
-#endif

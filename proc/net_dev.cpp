@@ -21,9 +21,9 @@
 #include <iomanip.hpp>
 #include <string-utils.hpp>
 
-#include <proc_net_dev.hpp>
+#include <proc/net_dev.hpp>
 
-namespace proc {
+namespace ifshow { namespace proc {
 
     std::list<std::string>
     get_if_list()
@@ -31,8 +31,8 @@ namespace proc {
         std::ifstream proc_net_dev(proc::NET_DEV);
         std::list<std::string> ret;
 
-        // skip the first 2 lines 
-        //    
+        // skip the first 2 lines
+        //
         proc_net_dev >> more::ignore_line >> more::ignore_line;
 
         more::string_token if_name(":");
@@ -44,19 +44,7 @@ namespace proc {
 
         return ret;
     }
-}
 
-#ifdef TEST_PROC
-#include <algorithm>
-#include <iterator>
-#include <iostream>
+} // namespace proc
+} // namespace ifshow
 
-int
-main(int argc, char *argv[])
-{
-    std::list<std::string> ret = proc::get_if_list();
-    std::copy(ret.begin(), ret.end(), std::ostream_iterator<std::string>(std::cout, " "));
-    return 0;
-}
-
-#endif

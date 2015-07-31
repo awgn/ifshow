@@ -17,20 +17,23 @@
  *
  */
 
-#ifndef _PROC_NET_DEV_H_
-#define _PROC_NET_DEV_H_ 
+#pragma once
 
+#include <tuple>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <list>
 
-#include <string-utils.hpp>  // more
-#include <proc_files.hpp>
+#include <string-utils.hpp>
+#include <proc/files.hpp>
 
-namespace proc 
-{
-    extern std::list<std::string> get_if_list();
-}
+namespace ifshow { namespace proc {
 
-#endif /* _PROC_NET_DEV_H_ */
+    extern std::tuple<double, double, double, double>
+    get_wireless(const std::string &);
+
+} // namespace proc
+} // namespace ifshow
+
+

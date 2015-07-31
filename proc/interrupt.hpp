@@ -17,21 +17,23 @@
  *
  */
 
-#ifndef _PROC_INTERRUPT_H_
-#define _PROC_INTERRUPT_H_ 
+#pragma once
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
 
-#include <lexical_cast.hpp>  // more
-#include <string-utils.hpp>  // more
-#include <proc_files.hpp>
+#include <lexical_cast.hpp>
+#include <string-utils.hpp>
+#include <proc/files.hpp>
 
-namespace proc 
+
+namespace ifshow { namespace proc
 {
     extern std::vector<int> get_interrupt_counter(int irq);
-}
 
-#endif /* _PROC_INTERRUPT_H_ */
+} // namespace proc
+} // namespace ifshow
+
+

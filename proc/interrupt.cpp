@@ -17,12 +17,11 @@
  *
  */
 
-
 #include <iomanip.hpp>
 
-#include <proc_interrupt.hpp>
+#include <proc/interrupt.hpp>
 
-namespace proc {
+namespace ifshow { namespace proc {
 
     std::vector<int>
     get_interrupt_counter(int irq)
@@ -41,7 +40,7 @@ namespace proc {
         {
             int intnum;
 
-            try 
+            try
             {
                 intnum = more::lexical_cast<int>(static_cast<std::string>(intstr));
             }
@@ -57,30 +56,15 @@ namespace proc {
             }
 
             int value;
-            while( proc_interrupt >> value ) 
+            while( proc_interrupt >> value )
                  ret.push_back(value);
-           
-            break; 
+
+            break;
         }
-        
+
         return ret;
     }
 
 } // namespace proc
+} // namespace ifshow
 
-#ifdef TEST_PROC
-
-#include <algorithm>
-#include <iterator>
-#include <iostream>
-
-int
-main(int argc, char *argv[])
-{
-    std::vector<int> v = get_interrupt_counter(23);
-    std::copy(v.begin(), v.end(), std::ostream_iterator<int>(std::cout, " "));
-
-    return 0;
-}
-
-#endif
