@@ -193,7 +193,7 @@ namespace ifshow {
 
             FILE *f;
             if ( (f=fopen(proc::IFINET6,"r")) == NULL)
-                throw std::system_error(errno, std::generic_category());
+                return {};
 
             while (fscanf(f, "%4s%4s%4s%4s%4s%4s%4s%4s %02x %02x %02x %02x %20s\n",
                           addr6p[0], addr6p[1], addr6p[2], addr6p[3],
@@ -308,7 +308,6 @@ namespace ifshow {
             }
 
             throw std::runtime_error("internal error");
-            return stats();
         }
 
 
