@@ -46,7 +46,7 @@ extern "C" {
 }
 
 extern char *__progname;
-static const char * version = "1.3";
+static const char * version = "2.0";
 
 using namespace ifshow;
 
@@ -60,8 +60,15 @@ struct options
 };
 
 
-typedef more::colorful< more::ecma::bold > BOLD;
-typedef more::colorful< more::ecma::reset > RESET;
+typedef more::colorful< more::ecma::bold >          bold;
+typedef more::colorful< more::ecma::reset >         reset;
+typedef more::colorful< more::ecma::fg::red >       red;
+typedef more::colorful< more::ecma::fg::blue>       blue;
+typedef more::colorful< more::ecma::fg::yellow>     yellow; 
+typedef more::colorful< more::ecma::fg::green>      green; 
+typedef more::colorful< more::ecma::fg::cyan>       cyan; 
+typedef more::colorful< more::ecma::fg::magenta>    magenta; 
+typedef more::colorful< more::ecma::fg::light_grey> grey; 
 
 
 template <typename CharT, typename Traits, typename Fun>
@@ -74,7 +81,7 @@ void pretty_print(std::basic_ostream<CharT, Traits> &out, size_t sp, Fun fun)
     }
     catch(std::exception &e)
     {
-        out << "info:" << e.what() << " ";
+        out << "info: " << e.what() << " ";
     }
 }
 
@@ -132,7 +139,7 @@ show_interfaces(const options &opts)
                 find(opts.if_list.begin(), opts.if_list.end(), name) == opts.if_list.end())
                 continue;
 
-            std::cout << RESET();
+            std::cout << reset();
 
             // display the interface when it's UP or -a is passed at command line
             //
@@ -164,18 +171,19 @@ show_interfaces(const options &opts)
                     continue;
             }
 
-            if (devnum++)
+            if (devnum++) {
                 std::cout << std::endl;
+            }
 
             pretty_print(std::cout, 0, [&] {
 
                 // display the interface name
                 //
-                std::cout << std::left << std::setw(indent-1) << name << ' ' << std::flush;
+                std::cout << std::left << cyan() << std::setw(indent-1) << name << reset() << ' ' << std::flush;
 
                 auto ecmd = iif.ethtool_command();
                 if (iif.ethtool_link())
-                std::cout << BOLD();
+                std::cout << bold();
 
                 // display Link-Speed (if supported)
                 //
@@ -183,28 +191,28 @@ show_interfaces(const options &opts)
                 {
                     uint32_t speed = ethtool_cmd_speed(ecmd.get());
 
-                    std::cout << "Link:" << (iif.ethtool_link() ? "yes " : "no ");
+                    std::cout << "link " << (iif.ethtool_link() ? "yes " : "no ");
 
                     if (speed != 0 && speed != (uint16_t)(-1) && speed != (uint32_t)(-1))
-                        std::cout << "Speed:" << speed << "Mb/s ";
+                        std::cout << "speed " << speed << "Mb/s ";
 
                     // display half/full duplex...
-                    std::cout << "Duplex:";
+                    std::cout << "duplex:";
                     switch(ecmd->duplex)
                     {
                     case DUPLEX_HALF:
-                        std::cout << "Half "; break;
+                        std::cout << "half "; break;
                     case DUPLEX_FULL:
-                        std::cout << "Full "; break;
+                        std::cout << "full "; break;
                     default:
-                        std::cout << "Unknown "; break;
+                        std::cout << "unknown "; break;
                     }
 
                     // display port...
-                    std::cout << "Port:";
+                    std::cout << "port:";
                     switch (ecmd->port) {
                     case PORT_TP:
-                        std::cout << "Twisted Pair "; break;
+                        std::cout << "twisted-pair "; break;
                     case PORT_AUI:
                         std::cout << "AUI "; break;
                     case PORT_BNC:
@@ -214,13 +222,13 @@ show_interfaces(const options &opts)
                     case PORT_FIBRE:
                         std::cout << "FIBRE "; break;
                     case PORT_DA:
-                        std::cout << "Direct Attach Copper "; break;
+                        std::cout << "direct-attach "; break;
                     case PORT_NONE:
-                        std::cout << "None "; break;
+                        std::cout << "none "; break;
                     case PORT_OTHER:
-                        std::cout << "Other "; break;
+                        std::cout << "other "; break;
                     default:
-                        std::cout << "Unknown "; break;
+                        std::cout << "unknown "; break;
                     }
                 }
             });
@@ -229,10 +237,10 @@ show_interfaces(const options &opts)
             {
                 // display HWaddr
                 //
-                std::cout << "HWaddr " << iif.mac();
+                std::cout << "link " << yellow() << iif.mac() << reset();
             });
 
-            std::cout << RESET();
+            std::cout << reset();
 
             // display wireless config if avaiable
             //
@@ -243,18 +251,18 @@ show_interfaces(const options &opts)
 
                 wireless_info winfo = iif.wifi_info();
 
-                std::cout << winfo.b.name << " ESSID:" << winfo.b.essid << " Mode:" <<
-                             iw_operation_mode[winfo.b.mode] << " Frequency:" << winfo.b.freq << std::endl << more::spaces(indent);
+                std::cout << winfo.b.name << " ESSID:" << winfo.b.essid << " mode:" <<
+                             iw_operation_mode[winfo.b.mode] << " frequency:" << winfo.b.freq << std::endl << more::spaces(indent);
 
                 if (winfo.has_bitrate)
                 {
                     iw_print_bitrate(buffer,sizeof(buffer), winfo.bitrate.value);
-                    std::cout << "Bit-Rate:" << buffer << ' ';
+                    std::cout << "bit-rate:" << buffer << ' ';
                 }
 
                 if (winfo.has_ap_addr)
                 {
-                    std::cout << "Access Point:" << iw_sawap_ntop(&winfo.ap_addr, buffer);
+                    std::cout << "access point:" << iw_sawap_ntop(&winfo.ap_addr, buffer);
                 }
 
             });
@@ -270,7 +278,7 @@ show_interfaces(const options &opts)
 
                 pretty_printLn(std::cout, indent, [&]
                 {
-                    std::cout << "wifi_status:" << std::get<0>(wi) <<
+                    std::cout << "wifi status:" << std::get<0>(wi) <<
                                " link:" << std::get<1>(wi) << " level:" << std::get<2>(wi) <<
                                " noise:" << std::get<3>(wi);
                 });
@@ -280,29 +288,25 @@ show_interfaces(const options &opts)
             //
             pretty_printLn(std::cout, indent, [&]
             {
-                std::cout << iif.flags_str() << "MTU:" << iif.mtu() << " Metric:" << iif.metric();
+                std::cout << bold() << iif.flags_str() << reset() << "MTU " << iif.mtu() << " metric " << iif.metric();
             });
 
             // display inet addr if set
             //
-            std::string inet_addr = iif.inet_addr<SIOCGIFADDR>();
-            if ( inet_addr.size() )
+            for(auto const &[addr, netmask, prefix]  : iif.inet_addr())
             {
                 pretty_printLn(std::cout, indent, [&]
                 {
-                    std::cout << "inet addr:" << inet_addr
-                               << " Bcast:" << iif.inet_addr<SIOCGIFBRDADDR>()
-                               << " Mask:" << iif.inet_addr<SIOCGIFNETMASK>();
+                    std::cout << "inet " << magenta() << addr << reset() << "/" << prefix;
 
                 });
             }
 
             // display inet6 addr if set
             //
-            std::string inet6_addr = iif.inet6_addr();
-            if (inet6_addr.size())
+            for (auto &[addr6, plen, attr] : iif.inet6_addr())
             {
-                pretty_printLn(std::cout, indent, [&] { std::cout << inet6_addr; });
+                pretty_printLn(std::cout, indent, [&] { std::cout << "inet6 " << blue() << addr6 << reset() << "/" << plen << " " << attr; });
             }
 
             if (opts.verbose)
@@ -326,7 +330,9 @@ show_interfaces(const options &opts)
                     auto cpuint = proc::get_interrupt_counter(static_cast<int>(m.irq));
                     int n = 0;
                     for(auto ci : cpuint) {
-                               std::cout << " cpu" << n++ << "=" << ci;
+                        if (ci > 0) {
+                            std::cout << " cpu" << n++ << ":" << ci;
+                        }
                     }
 
                     std::cout << " dma:" << static_cast<int>(m.dma)
@@ -356,7 +362,8 @@ show_interfaces(const options &opts)
                 {
                     pretty_printLn(std::cout, indent, [&]
                     {
-                        char bus_info[16];
+                        char bus_info[33] = {0};
+                       
                         strncpy(bus_info, info->bus_info, sizeof(bus_info)-1);
 
                         // set filter (and display additional pci info, if available)...
@@ -379,8 +386,7 @@ show_interfaces(const options &opts)
                                    pci_name = pci_lookup_name(pacc, pci_namebuf, sizeof(pci_namebuf),
                                                               PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id);
 
-                                   std::cout << std::hex
-                                   << pci_class << ":" << pci_name << std::dec << std::endl
+                                   std::cout << grey() << std::hex << pci_class << ": " << pci_name << reset() << std::dec << std::endl
                                    << more::spaces(indent)  << "vendor_id:" << dev->vendor_id
                                    << " device_id:" << dev->device_id << " device_class:" << dev->device_class;
                             }
@@ -395,11 +401,11 @@ show_interfaces(const options &opts)
                 {
                     // display ethertool_drivinfo...
                     //
-                    std::cout << "ether_driver:" << info->driver << " version:" << info->version;
+                    std::cout << "driver:" << cyan() << info->driver << reset() << " version:" << info->version;
                     if (strlen(info->fw_version))
                         std::cout << " firmware:" << info->fw_version;
                     if (strlen(info->bus_info))
-                        std::cout << " bus:" << info->bus_info;
+                        std::cout << " bus:" << red() << info->bus_info << reset();
                 });
             }
         }
@@ -410,7 +416,7 @@ show_interfaces(const options &opts)
     }
 
     pci_cleanup(pacc);
-    std::cout << RESET();
+    std::cout << reset();
     return 0;
 }
 

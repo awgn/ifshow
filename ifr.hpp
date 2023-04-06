@@ -47,6 +47,7 @@
 
 #include <macro.h>
 #include <iwlib.h>
+#include <ifaddrs.h>
 
 namespace ifshow {
 
@@ -75,15 +76,33 @@ namespace ifshow {
         std::string
         flags_str() const
         {
-            const char *if_flags[]= {
-                "UP", "BROADCAST", "DEBUG", "LOOPBACK", "PTP", "NOTRL", "RUNNING", "NOARP",
-                "PROMIS", "ALLMULTI", "MASTER", "SLAVE", "MULTICAST", "PORTSEL", "AUTOMEDIA" };
+            const char *if_flags[] = {
+                 "UP", 
+                 "BROADCAST", 
+                 "DEBUG", 
+                 "LOOPBACK", 
+                 "PTP", 
+                 "NOTRLS", 
+                 "RUNNING", 
+                 "NOARP",
+                 "PROMIS", 
+                 "ALLMULTI", 
+                 "MASTER", 
+                 "SLAVE", 
+                 "MULTICAST", 
+                 "PORTSEL", 
+                 "AUTOMEDIA",
+                 "DYNAMIC", 
+                 "LOWER_UP", 
+                 "DORMANT", 
+                 "ECHO", 
+            };
 
             short int fl = flags();
             std::stringstream ret;
 
-            for (int i=1;i<16;i++)
-                if ( fl & IF_FLAG_BIT(i) )
+            for (int i=1; i <= 19; i++)
+                if (fl & IF_FLAG_BIT(i))
                     ret << if_flags[i-1] << ' ';
 
             return ret.str();
@@ -101,13 +120,13 @@ namespace ifshow {
             uint32_t req = ETHTOOL_GDRVINFO;	/* netdev ethcmd */
 
             m_ifreq_io.ifr_data = reinterpret_cast<__caddr_t>(drvinfo.get());
-            strncpy(m_ifreq_io.ifr_data, (char *) &req, sizeof(req));
+            memcpy(m_ifreq_io.ifr_data, (char *) &req, sizeof(req));
 
             if (ioctl(sock_(), SIOCETHTOOL, &m_ifreq_io) == -1) {
                 throw std::system_error(errno, std::generic_category());
             }
 
-            return std::move(drvinfo);
+            return drvinfo;
         }
 
         std::unique_ptr<ethtool_cmd>
@@ -122,7 +141,7 @@ namespace ifshow {
                 throw std::system_error(errno, std::generic_category());
             }
 
-            return std::move(ecmd);
+            return ecmd;
         }
 
         bool
@@ -169,31 +188,67 @@ namespace ifshow {
         }
 
 
-        template <int SIOC>
-        std::string
-        inet_addr() const
+        auto 
+        inet_addr() const -> std::vector<std::tuple<std::string, std::string, int>>
         {
-            if (ioctl(sock_(), SIOC, &m_ifreq_io) != -1 ) {
-                struct sockaddr_in *p = (struct sockaddr_in *)&m_ifreq_io.ifr_addr;
+            std::vector<std::tuple<std::string, std::string, int>> ret;
 
-                if(m_ifreq_io.ifr_addr.sa_family == AF_INET) {
-                    char dst[16];
-                    return inet_ntop(AF_INET, reinterpret_cast<const void *>(&p->sin_addr), dst, sizeof(dst));
+            // get the list of network interfaces
+            //
+            struct ifaddrs *ifaddr, *ifa;
+            if (getifaddrs(&ifaddr) < 0) {
+                throw std::system_error(errno, std::generic_category());
+            }
+
+            // loop through the list of interfaces
+            for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+                if (strcmp(ifa->ifa_name, m_name.c_str()) != 0) {
+                    continue;
+                }
+
+                if (ifa->ifa_addr->sa_family == AF_INET) 
+                {
+                    char host[NI_MAXHOST], netmask[NI_MAXHOST];
+
+                    if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0) {
+                        throw std::system_error(errno, std::generic_category());
+                    }
+
+                    if (getnameinfo(ifa->ifa_netmask, sizeof(struct sockaddr_in), netmask, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0) {
+                        throw std::system_error(errno, std::generic_category());
+                    }
+
+                    // convert the mask to binary
+                    uint32_t mask_bin = ntohl(reinterpret_cast<sockaddr_in*>(ifa->ifa_netmask)->sin_addr.s_addr);
+                    // count the number of consecutive 1's from the leftmost bit position
+                    int prefix_len = 0;
+
+                    while (mask_bin) {
+                        prefix_len++;
+                        mask_bin <<= 1;
+                    }
+
+                    ret.emplace_back(host, netmask, prefix_len);
                 }
             }
-            return std::string();
+            freeifaddrs(ifaddr);
+            return ret;
         }
 
-        std::string
-        inet6_addr() const
+        auto
+        inet6_addr() const -> std::vector<std::tuple<std::string, int, std::string>>
         {
+            std::vector<std::tuple<std::string, int, std::string>> ret;
+
             char addr6p[8][5], devname[20], addr6[40];
             struct in6_addr in_addr6;
             int plen, scope, dad_status, if_idx;
 
             FILE *f;
-            if ( (f=fopen(proc::IFINET6,"r")) == NULL)
+
+            if ( (f=fopen(proc::IFINET6,"r")) == NULL) {
                 return {};
+            }
 
             while (fscanf(f, "%4s%4s%4s%4s%4s%4s%4s%4s %02x %02x %02x %02x %20s\n",
                           addr6p[0], addr6p[1], addr6p[2], addr6p[3],
@@ -213,33 +268,31 @@ namespace ifshow {
                 inet_pton(PF_INET6,addr6,&in_addr6);
                 inet_ntop(PF_INET6,&in_addr6, addr6, 40);
 
-                ss << "inet6 addr: " << addr6 << "/" << plen << " Scope:";
                 switch (scope) {
                 case 0:
-                    ss << "Global";
+                    ss << "global";
                     break;
                 case IPV6_ADDR_LINKLOCAL:
-                    ss << "Link";
+                    ss << "link";
                     break;
                 case IPV6_ADDR_SITELOCAL:
-                    ss << "Site";
+                    ss << "site";
                     break;
                 case IPV6_ADDR_COMPATv4:
-                    ss << "Compat";
+                    ss << "compat";
                     break;
                 case IPV6_ADDR_LOOPBACK:
-                    ss << "Host";
+                    ss << "host";
                     break;
                 default:
-                    ss << "Unknown";
+                    ss << "unknown";
                 }
-
-                fclose(f);
-                return ss.str();
+                
+                ret.emplace_back(addr6, plen, ss.str());
             }
 
             fclose(f);
-            return std::string();
+            return ret;
         }
 
         struct ifmap
