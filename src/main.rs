@@ -4,6 +4,7 @@ use anyhow::Result;
 
 mod ifr;
 mod proc;
+mod pci_utils;
 #[cfg(target_os = "macos")]
 mod macos;
 
@@ -31,6 +32,9 @@ struct Cli {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    // Enumerate PCI devices once
+    let pci_devices = pci_utils::get_pci_devices().unwrap_or_default();
 
     let if_list_proc = proc::get_if_list()?;
 
@@ -116,17 +120,65 @@ fn main() -> Result<()> {
         }
 
         // --- Driver / Bus Info ---
+        let mut bus_str_owned = String::new();
         if let Some(info) = &drv_info {
              let drv_str = unsafe { std::ffi::CStr::from_ptr(info.driver.as_ptr()) }.to_string_lossy();
              let ver_str = unsafe { std::ffi::CStr::from_ptr(info.version.as_ptr()) }.to_string_lossy();
              let bus_str = unsafe { std::ffi::CStr::from_ptr(info.bus_info.as_ptr()) }.to_string_lossy();
+             bus_str_owned = bus_str.to_string();
 
              println!("{}Driver:  {} (v: {})", indent, drv_str.white().bold(), ver_str);
-             if !bus_str.is_empty() {
-                  println!("{}Bus:     {}", indent, bus_str);
+             if !bus_str_owned.is_empty() {
+                  println!("{}Bus:     {}", indent, bus_str_owned);
              }
+        }
 
-             // Check generic pci crate if requested? (omitted per plan, using ethtool info is sufficient)
+        // --- PCI Info ---
+        let mut pci_info_opt = pci_utils::find_pci_info_for_interface(name, &bus_str_owned, &pci_devices);
+        
+        // On macOS, if pci_info crate didn't find info, try ioreg
+        #[cfg(target_os = "macos")]
+        {
+            if pci_info_opt.is_none() {
+                pci_info_opt = macos::get_pci_info_from_ioreg(name);
+            }
+        }
+        
+        if let Some(pci_info) = pci_info_opt {
+            if let Some(addr) = pci_info.pci_address() {
+                println!("{}PCI:     {}", indent, addr.bright_cyan());
+            }
+            
+            if let (Some(vendor), Some(device)) = (&pci_info.vendor_name, &pci_info.device_name) {
+                println!("{}Device:  {} {}", indent, vendor.bright_white(), device);
+            } else if pci_info.vendor_id != 0 || pci_info.device_id != 0 {
+                println!("{}Device:  [{:04x}:{:04x}]", indent, pci_info.vendor_id, pci_info.device_id);
+            }
+            
+            let class_desc = pci_info.format_class();
+            if cli.verbose {
+                if let Some(rev) = pci_info.revision {
+                    println!("{}Class:   {} (rev {:02x})", indent, class_desc, rev);
+                } else {
+                    println!("{}Class:   {}", indent, class_desc);
+                }
+                
+                if let (Some(ss_vendor), Some(ss_device)) = (pci_info.subsystem_vendor, pci_info.subsystem_device) {
+                    println!("{}SubSys:  [{:04x}:{:04x}]", indent, ss_vendor, ss_device);
+                }
+                
+                if let Some(irq) = pci_info.irq {
+                    println!("{}IRQ:     {}", indent, irq);
+                }
+                
+                if let Some(numa) = pci_info.numa_node {
+                    println!("{}NUMA:    {}", indent, numa);
+                }
+                
+                if let Some(driver) = &pci_info.driver {
+                    println!("{}Drv Name:{}", indent, driver.dimmed());
+                }
+            }
         }
 
         // --- Status / Flags ---
